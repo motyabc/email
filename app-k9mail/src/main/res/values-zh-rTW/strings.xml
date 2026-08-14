@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="app_name">K-9 Mail</string>
+    <string name="app_name">KEMI 郵箱</string>
+    <string name="about_app_authors_k9">KEMI 郵箱團隊（基於 K-9 Mail）</string>
+    <string name="about_app_authors_thunderbird">Thunderbird 行動版團隊與 K-9 Mail 貢獻者</string>
 </resources>

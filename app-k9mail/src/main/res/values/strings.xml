@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <!-- Please keep the K-9 Mail format and just localize the mail part if possible.   -->
-    <string name="app_name">K-9 Mail</string>
+    <!-- KEMI is the product-family brand and must not be translated. -->
+    <string name="app_name">KEMI Mail</string>
+    <string name="about_app_authors_k9">KEMI Mail team (based on K-9 Mail)</string>
+    <string name="about_app_authors_thunderbird">Thunderbird Mobile Team and K-9 Mail contributors</string>
 </resources>

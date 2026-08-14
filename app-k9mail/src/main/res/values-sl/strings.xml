@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="app_name">Pošta K-9</string>
+    <string name="app_name">KEMI Mail</string>
+    <string name="about_app_authors_k9">KEMI Mail team (based on K-9 Mail)</string>
+    <string name="about_app_authors_thunderbird">Thunderbird Mobile Team and K-9 Mail contributors</string>
 </resources>

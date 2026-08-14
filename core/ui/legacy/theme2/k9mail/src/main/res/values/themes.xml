@@ -64,7 +64,7 @@
         <item name="colorSurfaceVariant">@color/lightSurfaceContainerHighest</item>
 
         <!-- Custom attributes -->
-        <item name="appLogo">@drawable/ic_app_logo</item>
+        <item name="appLogo">@drawable/kemi_wordmark</item>
     </style>
 
     <style name="Theme2.K9.Dark" parent="Theme2.Main.Dark">
@@ -130,7 +130,7 @@
         <item name="colorSurfaceVariant">@color/darkSurfaceContainerHighest</item>
 
         <!-- Custom attributes -->
-        <item name="appLogo">@drawable/ic_app_logo</item>
+        <item name="appLogo">@drawable/kemi_wordmark</item>
     </style>
 
 </resources>

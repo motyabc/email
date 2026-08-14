@@ -17,7 +17,7 @@ android {
         versionCode = 39040
         versionName = "20.1"
 
-        buildConfigField("String", "CLIENT_INFO_APP_NAME", "\"K-9 Mail\"")
+        buildConfigField("String", "CLIENT_INFO_APP_NAME", "\"KEMI Mail\"")
     }
 
     androidResources {
@@ -154,7 +154,7 @@ dependencies {
     implementation(projects.feature.account.settings.impl)
 
     "fossImplementation"(projects.feature.funding.noop)
-    "fullImplementation"(projects.feature.funding.googleplay)
+    "fullImplementation"(projects.feature.funding.noop)
     implementation(projects.feature.migration.launcher.noop)
     implementation(projects.feature.onboarding.migration.noop)
     implementation(projects.feature.thundermail.api)
