@@ -34,6 +34,12 @@ class MxLookupAutoconfigDiscovery internal constructor(
         val domain = email.domain.toDomain()
 
         val mxLookupResult = mxLookup(domain) ?: return NoUsableSettingsFound
+        BuiltInProviderSettings.find(
+            mxHostNames = mxLookupResult.mxNames,
+            email = email,
+            isMxLookupTrusted = mxLookupResult.isTrusted,
+        )?.let { return it }
+
         val mxHostName = mxLookupResult.mxNames.first()
 
         val mxBaseDomain = getMxBaseDomain(mxHostName)

@@ -1,6 +1,11 @@
 package app.k9mail.autodiscovery.autoconfig
 
+import app.k9mail.autodiscovery.api.AuthenticationType.PasswordCleartext
 import app.k9mail.autodiscovery.api.AutoDiscoveryResult.NoUsableSettingsFound
+import app.k9mail.autodiscovery.api.AutoDiscoveryResult.Settings
+import app.k9mail.autodiscovery.api.ConnectionSecurity.TLS
+import app.k9mail.autodiscovery.api.ImapServerSettings
+import app.k9mail.autodiscovery.api.SmtpServerSettings
 import app.k9mail.autodiscovery.autoconfig.MockAutoconfigFetcher.Companion.RESULT_ONE
 import assertk.assertThat
 import assertk.assertions.containsExactly
@@ -10,6 +15,8 @@ import kotlin.test.Test
 import kotlinx.coroutines.test.runTest
 import net.thunderbird.core.common.mail.toUserEmailAddress
 import net.thunderbird.core.common.net.toDomain
+import net.thunderbird.core.common.net.toHostname
+import net.thunderbird.core.common.net.toPort
 
 class MxLookupAutoconfigDiscoveryTest {
     private val mxResolver = MockMxResolver()
@@ -97,6 +104,37 @@ class MxLookupAutoconfigDiscoveryTest {
             "https://autoconfig.thunderbird.net/v1.1/emailprovider.example",
         )
         assertThat(discoveryResult).isEqualTo(NoUsableSettingsFound)
+    }
+
+    @Test
+    fun `built-in Alibaba Mail settings should be used when MX host matches`() = runTest {
+        val emailAddress = "user@company.example".toUserEmailAddress()
+        mxResolver.addResult("mx1.qiye.aliyun.com".toDomain(), isTrusted = true)
+
+        val autoDiscoveryRunnables = discovery.initDiscovery(emailAddress)
+        val discoveryResult = autoDiscoveryRunnables.first().run()
+
+        assertThat(autoconfigFetcher.callCount).isEqualTo(0)
+        assertThat(discoveryResult).isEqualTo(
+            Settings(
+                incomingServerSettings = ImapServerSettings(
+                    hostname = "imap.qiye.aliyun.com".toHostname(),
+                    port = 993.toPort(),
+                    connectionSecurity = TLS,
+                    authenticationTypes = listOf(PasswordCleartext),
+                    username = emailAddress.address,
+                ),
+                outgoingServerSettings = SmtpServerSettings(
+                    hostname = "smtp.qiye.aliyun.com".toHostname(),
+                    port = 465.toPort(),
+                    connectionSecurity = TLS,
+                    authenticationTypes = listOf(PasswordCleartext),
+                    username = emailAddress.address,
+                ),
+                isTrusted = true,
+                source = "https://help.aliyun.com/zh/document_detail/36576.html",
+            ),
+        )
     }
 
     @Test
