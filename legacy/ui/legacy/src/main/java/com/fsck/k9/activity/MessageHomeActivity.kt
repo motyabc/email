@@ -9,6 +9,7 @@ import android.os.Parcelable
 import android.view.KeyEvent
 import android.view.MenuItem
 import android.view.View
+import android.view.ViewGroup
 import android.view.animation.AnimationUtils
 import android.widget.ProgressBar
 import androidx.activity.OnBackPressedCallback
@@ -126,6 +127,7 @@ open class MessageHomeActivity :
     private val messageListFragmentFactory: MessageListFragmentBridgeContract.Factory by inject()
     private var messageListFragment: MessageListFragmentBridgeContract? = null
     private var messageViewContainerFragment: MessageViewContainerFragment? = null
+    private var dualScreenSpanCoordinator: DualScreenSpanCoordinator? = null
     private var account: LegacyAccountDto? = null
     private var search: LocalMessageSearch? = null
     private var singleFolderMode = false
@@ -172,6 +174,10 @@ open class MessageHomeActivity :
                 setOnSwitchCompleteListener(this@MessageHomeActivity)
             }
         }
+
+        val activityContent = findViewById<ViewGroup>(android.R.id.content)
+        val authoritativeRootView = activityContent.getChildAt(0)
+        dualScreenSpanCoordinator = DualScreenSpanCoordinator(this, authoritativeRootView)
 
         initializeActionBar()
         initializeDrawer()
@@ -625,9 +631,22 @@ open class MessageHomeActivity :
     override fun onStart() {
         super.onStart()
 
+        dualScreenSpanCoordinator?.start()
+
         if (contactRepository is CachingRepository) {
             (contactRepository as CachingRepository).clearCache()
         }
+    }
+
+    override fun onStop() {
+        dualScreenSpanCoordinator?.stop()
+        super.onStop()
+    }
+
+    override fun onDestroy() {
+        dualScreenSpanCoordinator?.destroy()
+        dualScreenSpanCoordinator = null
+        super.onDestroy()
     }
 
     public override fun onSaveInstanceState(outState: Bundle) {
