@@ -4,6 +4,7 @@ import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.widget.ImageView
 import androidx.appcompat.widget.AppCompatImageView
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,6 +54,9 @@ internal const val ATTACHMENT_ACTIONS_TEST_TAG = "dual_screen_attachment_actions
 internal const val ATTACHMENT_OPEN_TEST_TAG = "dual_screen_attachment_open"
 internal const val ATTACHMENT_SAVE_TEST_TAG = "dual_screen_attachment_save"
 internal const val ATTACHMENT_CLOSE_TEST_TAG = "dual_screen_attachment_close"
+internal const val ATTACHMENT_DROP_TARGET_TEST_TAG = "dual_screen_attachment_drop_target"
+internal const val ATTACHMENT_DROP_ACTION_TEST_TAG = "dual_screen_attachment_drop_action"
+internal const val ATTACHMENT_DROP_CANCEL_TEST_TAG = "dual_screen_attachment_drop_cancel"
 
 @Composable
 internal fun DualScreenAttachmentPreview(
@@ -119,6 +123,53 @@ internal fun DualScreenAttachmentActions(
                 text = stringResource(R.string.dual_screen_attachment_close),
                 onClick = onClose,
                 modifier = Modifier.fillMaxWidth().testTag(ATTACHMENT_CLOSE_TEST_TAG),
+            )
+        }
+    }
+}
+
+@Composable
+internal fun DualScreenAttachmentDropTarget(
+    attachmentName: String,
+    onDrop: () -> Unit,
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxSize()
+            .testTag(ATTACHMENT_DROP_TARGET_TEST_TAG)
+            .clickable(onClick = onDrop),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(MainTheme.spacings.triple),
+            verticalArrangement = Arrangement.spacedBy(MainTheme.spacings.double),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            TextHeadlineSmall(text = stringResource(R.string.dual_screen_attachment_drag_title))
+            TextTitleLarge(
+                text = attachmentName,
+                overflow = TextOverflow.Ellipsis,
+                maxLines = 2,
+            )
+            TextBodyLarge(text = stringResource(R.string.dual_screen_attachment_drag_description))
+            TextBodyMedium(
+                text = stringResource(R.string.dual_screen_attachment_drag_fallback),
+                color = MainTheme.colors.onSurfaceVariant,
+            )
+            ButtonFilled(
+                text = stringResource(R.string.dual_screen_attachment_drag_drop_action),
+                icon = Icons.Outlined.Visibility,
+                onClick = onDrop,
+                modifier = Modifier.fillMaxWidth().testTag(ATTACHMENT_DROP_ACTION_TEST_TAG),
+            )
+            ButtonText(
+                text = stringResource(R.string.dual_screen_attachment_drag_cancel),
+                onClick = onCancel,
+                modifier = Modifier.fillMaxWidth().testTag(ATTACHMENT_DROP_CANCEL_TEST_TAG),
             )
         }
     }

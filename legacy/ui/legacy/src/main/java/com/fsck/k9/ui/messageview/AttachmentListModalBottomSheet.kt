@@ -1,6 +1,7 @@
 package com.fsck.k9.ui.messageview
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import app.k9mail.core.ui.compose.designsystem.atom.button.ButtonIcon
@@ -31,56 +33,68 @@ import net.thunderbird.core.ui.compose.designsystem.organism.ModalBottomSheet
 import net.thunderbird.core.ui.compose.theme2.MainTheme
 
 private const val OPEN_PGP_RED = 0xFFCC0000
+internal const val ATTACHMENT_DRAG_SOURCE_TEST_TAG = "attachment_drag_source"
 
 internal data class AttachmentListItemModel(
     val attachment: AttachmentViewInfo,
     val isLocked: Boolean,
 )
 
+data class AttachmentDragCallbacks(
+    val canStart: (AttachmentViewInfo) -> Boolean,
+    val start: (AttachmentViewInfo) -> Boolean,
+)
+
+internal data class AttachmentListCallbacks(
+    val onDismissRequest: () -> Unit,
+    val drag: AttachmentDragCallbacks,
+    val onAttachmentClick: (AttachmentViewInfo) -> Unit,
+    val onSaveClick: (AttachmentViewInfo) -> Unit,
+    val onSaveAllClick: () -> Unit,
+)
+
 @Composable
 internal fun AttachmentListModalBottomSheet(
     attachments: ImmutableList<AttachmentListItemModel>,
     sizeFormatter: SizeFormatter,
-    onDismissRequest: () -> Unit,
-    onAttachmentClick: (AttachmentViewInfo) -> Unit,
-    onSaveClick: (AttachmentViewInfo) -> Unit,
-    onSaveAllClick: () -> Unit,
+    callbacks: AttachmentListCallbacks,
 ) {
     ModalBottomSheet(
-        onDismissRequest = onDismissRequest,
+        onDismissRequest = callbacks.onDismissRequest,
     ) {
         AttachmentListContent(
             attachments = attachments,
             sizeFormatter = sizeFormatter,
-            onAttachmentClick = onAttachmentClick,
-            onSaveClick = onSaveClick,
-            onSaveAllClick = onSaveAllClick,
+            callbacks = callbacks,
         )
     }
 }
 
 @Composable
-private fun AttachmentListContent(
+internal fun AttachmentListContent(
     attachments: ImmutableList<AttachmentListItemModel>,
     sizeFormatter: SizeFormatter,
-    onAttachmentClick: (AttachmentViewInfo) -> Unit,
-    onSaveClick: (AttachmentViewInfo) -> Unit,
-    onSaveAllClick: () -> Unit,
+    callbacks: AttachmentListCallbacks,
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState()),
     ) {
-        AttachmentListHeader(onSaveAllClick = onSaveAllClick)
+        AttachmentListHeader(onSaveAllClick = callbacks.onSaveAllClick)
 
         attachments.forEach { item ->
             AttachmentListItem(
                 attachment = item.attachment,
                 isLocked = item.isLocked,
                 sizeFormatter = sizeFormatter,
-                onClick = { onAttachmentClick(item.attachment) },
-                onSaveClick = { onSaveClick(item.attachment) },
+                onClick = { callbacks.onAttachmentClick(item.attachment) },
+                onLongClick = if (item.isLocked || !callbacks.drag.canStart(item.attachment)) {
+                    null
+                } else {
+                    { callbacks.drag.start(item.attachment) }
+                },
+                onSaveClick = { callbacks.onSaveClick(item.attachment) },
             )
         }
     }
@@ -137,12 +151,20 @@ private fun AttachmentListItem(
     isLocked: Boolean,
     sizeFormatter: SizeFormatter,
     onClick: () -> Unit,
+    onLongClick: (() -> Unit)?,
     onSaveClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .testTag(ATTACHMENT_DRAG_SOURCE_TEST_TAG)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick,
+                onLongClickLabel = onLongClick?.let {
+                    stringResource(R.string.dual_screen_attachment_drag_accessibility_action)
+                },
+            )
             .padding(
                 start = MainTheme.spacings.double,
                 end = MainTheme.spacings.default,

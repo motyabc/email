@@ -47,6 +47,7 @@ import app.k9mail.legacy.message.controller.MessageReference
 import com.fsck.k9.CoreResourceProvider
 import com.fsck.k9.Preferences
 import com.fsck.k9.activity.attachment.DualScreenAttachmentWorkspaceCoordinator
+import com.fsck.k9.activity.attachment.canBeginDualScreenAttachmentDrag
 import com.fsck.k9.activity.compose.DualScreenModeEntry
 import com.fsck.k9.activity.compose.DualScreenModeEntryCallbacks
 import com.fsck.k9.activity.compose.DualScreenModeEntryState
@@ -70,6 +71,7 @@ import com.fsck.k9.ui.managefolders.ManageFoldersActivity
 import com.fsck.k9.ui.messagelist.DefaultFolderProvider
 import com.fsck.k9.ui.messagelist.MessageListFragmentBridgeContract
 import com.fsck.k9.ui.messagelist.MessageListFragmentBridgeContract.MessageListFragmentListener
+import com.fsck.k9.ui.messageview.AttachmentDragCallbacks
 import com.fsck.k9.ui.messageview.MessageViewContainerFragment
 import com.fsck.k9.ui.messageview.MessageViewContainerFragment.MessageViewContainerListener
 import com.fsck.k9.ui.messageview.MessageViewFragment.MessageViewFragmentListener
@@ -260,7 +262,9 @@ open class MessageHomeActivity :
 
         val backPressedCallback = object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                this@MessageHomeActivity.handleOnBackPressed(this)
+                if (dualScreenAttachmentWorkspaceCoordinator?.cancelPendingDrag() != true) {
+                    this@MessageHomeActivity.handleOnBackPressed(this)
+                }
             }
         }
         onBackPressedDispatcher.addCallback(this, backPressedCallback)
@@ -381,6 +385,9 @@ open class MessageHomeActivity :
             onRuntimeStateChanged = { state ->
                 currentDualScreenRuntimeState = state
                 isDualScreenModeEntryVisible = state.isDualScreenAvailable
+                if (!state.usesSmartWorkspace) {
+                    dualScreenAttachmentWorkspaceCoordinator?.dismiss()
+                }
                 if (!state.isDualScreenAvailable) {
                     isDualScreenModeDialogVisible = false
                     dualScreenHardwareKeyController.cancelCapture()
@@ -988,7 +995,7 @@ open class MessageHomeActivity :
         dualScreenRecoverySnackbar = null
         smartAssistantPanelCoordinator?.destroy()
         smartAssistantPanelCoordinator = null
-        dualScreenAttachmentWorkspaceCoordinator?.destroy()
+        dualScreenAttachmentWorkspaceCoordinator?.dismiss()
         dualScreenAttachmentWorkspaceCoordinator = null
         dualScreenModeSelectionController = null
         dualScreenSpanCoordinator?.destroy()
@@ -1514,6 +1521,20 @@ open class MessageHomeActivity :
 
     override fun onViewAttachmentInDualScreenWorkspace(attachment: AttachmentViewInfo): Boolean {
         return dualScreenAttachmentWorkspaceCoordinator?.showIfSupported(attachment) == true
+    }
+
+    override fun getAttachmentDragCallbacks(): AttachmentDragCallbacks {
+        return AttachmentDragCallbacks(
+            canStart = { attachment ->
+                currentDualScreenRuntimeState.usesSmartWorkspace &&
+                    dualScreenAttachmentWorkspaceCoordinator != null &&
+                    canBeginDualScreenAttachmentDrag(attachment)
+            },
+            start = { attachment ->
+                currentDualScreenRuntimeState.usesSmartWorkspace &&
+                    dualScreenAttachmentWorkspaceCoordinator?.beginDrag(attachment) == true
+            },
+        )
     }
 
     override fun onCompose(account: LegacyAccount?) {

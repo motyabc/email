@@ -215,6 +215,7 @@ class MessageViewFragment :
         messageTopView.setShowAccountIndicator(showAccountIndicator)
 
         val sizeFormatter = SizeFormatter(resources)
+        val attachmentDragCallbacks = fragmentListener.getAttachmentDragCallbacks()
         val composeView = messageTopView.findViewById<ComposeView>(R.id.attachment_bottom_sheet_compose_view)
         composeView.apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
@@ -226,21 +227,30 @@ class MessageViewFragment :
                         AttachmentListModalBottomSheet(
                             attachments = attachments,
                             sizeFormatter = sizeFormatter,
-                            onDismissRequest = {
-                                attachmentListBottomSheetState.update { persistentListOf() }
-                            },
-                            onAttachmentClick = { attachment ->
-                                attachmentListBottomSheetState.update { persistentListOf() }
-                                onViewAttachment(attachment)
-                            },
-                            onSaveClick = { attachment ->
-                                onSaveAttachment(attachment)
-                            },
-                            onSaveAllClick = {
-                                attachments.forEach { item ->
-                                    onSaveAttachment(item.attachment)
-                                }
-                            },
+                            callbacks = AttachmentListCallbacks(
+                                onDismissRequest = {
+                                    attachmentListBottomSheetState.update { persistentListOf() }
+                                },
+                                drag = attachmentDragCallbacks.copy(
+                                    start = { attachment ->
+                                        attachmentDragCallbacks.start(attachment).also { started ->
+                                            if (started) attachmentListBottomSheetState.update { persistentListOf() }
+                                        }
+                                    },
+                                ),
+                                onAttachmentClick = { attachment ->
+                                    attachmentListBottomSheetState.update { persistentListOf() }
+                                    onViewAttachment(attachment)
+                                },
+                                onSaveClick = { attachment ->
+                                    onSaveAttachment(attachment)
+                                },
+                                onSaveAllClick = {
+                                    attachments.forEach { item ->
+                                        onSaveAttachment(item.attachment)
+                                    }
+                                },
+                            ),
                         )
                     }
                 }
@@ -1099,6 +1109,7 @@ class MessageViewFragment :
         fun performNavigationAfterMessageRemoval()
         fun performNavigationAfterMarkAsUnread()
         fun onViewAttachmentInDualScreenWorkspace(attachment: AttachmentViewInfo): Boolean
+        fun getAttachmentDragCallbacks(): AttachmentDragCallbacks
     }
 
     private val messageLoaderCallbacks: MessageLoaderCallbacks = object : MessageLoaderCallbacks {

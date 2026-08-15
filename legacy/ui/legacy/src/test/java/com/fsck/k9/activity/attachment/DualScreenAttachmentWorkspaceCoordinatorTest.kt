@@ -20,6 +20,53 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class DualScreenAttachmentWorkspaceCoordinatorTest {
     @Test
+    fun `supported drag shows lower target then drop opens both workspace hosts`() {
+        val fixture = createFixture()
+
+        assertThat(fixture.testSubject.beginDrag(createAttachment())).isTrue()
+        assertThat(fixture.upperHost.visibility).isEqualTo(View.GONE)
+        assertThat(fixture.upperHost.childCount).isEqualTo(0)
+        assertThat(fixture.lowerHost.visibility).isEqualTo(View.VISIBLE)
+        assertThat(fixture.lowerHost.childCount).isEqualTo(1)
+
+        assertThat(fixture.testSubject.completePendingDrag()).isTrue()
+        assertThat(fixture.upperHost.visibility).isEqualTo(View.VISIBLE)
+        assertThat(fixture.upperHost.childCount).isEqualTo(1)
+        assertThat(fixture.lowerHost.visibility).isEqualTo(View.VISIBLE)
+        assertThat(fixture.lowerHost.childCount).isEqualTo(1)
+    }
+
+    @Test
+    fun `unsupported attachment cannot begin drag`() {
+        val fixture = createFixture()
+
+        assertThat(fixture.testSubject.beginDrag(createAttachment(mimeType = "application/pdf"))).isFalse()
+
+        assertHostsCleared(fixture)
+    }
+
+    @Test
+    fun `cancel pending drag clears target without opening preview`() {
+        val fixture = createFixture()
+        fixture.testSubject.beginDrag(createAttachment())
+
+        assertThat(fixture.testSubject.cancelPendingDrag()).isTrue()
+        assertThat(fixture.testSubject.completePendingDrag()).isFalse()
+
+        assertHostsCleared(fixture)
+    }
+
+    @Test
+    fun `cancel without pending drag leaves workspace untouched`() {
+        val fixture = createFixture()
+        fixture.testSubject.showIfSupported(createAttachment())
+
+        assertThat(fixture.testSubject.cancelPendingDrag()).isFalse()
+        assertThat(fixture.upperHost.visibility).isEqualTo(View.VISIBLE)
+        assertThat(fixture.lowerHost.visibility).isEqualTo(View.VISIBLE)
+    }
+
+    @Test
     fun `supported attachment shows both workspace hosts and dismiss clears them`() {
         val fixture = createFixture()
 
@@ -46,11 +93,11 @@ class DualScreenAttachmentWorkspaceCoordinatorTest {
     }
 
     @Test
-    fun `destroy clears an active workspace`() {
+    fun `dismiss clears an active workspace`() {
         val fixture = createFixture()
         fixture.testSubject.showIfSupported(createAttachment())
 
-        fixture.testSubject.destroy()
+        fixture.testSubject.dismiss()
 
         assertHostsCleared(fixture)
     }

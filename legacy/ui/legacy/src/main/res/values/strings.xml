@@ -1193,4 +1193,10 @@ You can keep this message and use it as a backup for your secret key. If you wan
     <string name="dual_screen_attachment_details"><xliff:g id="mime_type">%1$s</xliff:g> · <xliff:g id="size">%2$s</xliff:g></string>
     <string name="dual_screen_attachment_open_external">Open with system app</string>
     <string name="dual_screen_attachment_close">Return to message list</string>
+    <string name="dual_screen_attachment_drag_title">Move attachment across screens</string>
+    <string name="dual_screen_attachment_drag_description">Move this attachment from the upper screen to this lower-screen target. Release here to preview it above.</string>
+    <string name="dual_screen_attachment_drag_fallback">If the display boundary interrupts the gesture, use the button below to complete the handoff.</string>
+    <string name="dual_screen_attachment_drag_drop_action">Drop and preview</string>
+    <string name="dual_screen_attachment_drag_cancel">Cancel drag</string>
+    <string name="dual_screen_attachment_drag_accessibility_action">Move attachment to lower screen</string>
 </resources>

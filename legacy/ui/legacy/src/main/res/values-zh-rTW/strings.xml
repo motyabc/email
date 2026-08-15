@@ -939,4 +939,10 @@
     <string name="dual_screen_attachment_details"><xliff:g id="mime_type">%1$s</xliff:g> · <xliff:g id="size">%2$s</xliff:g></string>
     <string name="dual_screen_attachment_open_external">使用系統應用程式開啟</string>
     <string name="dual_screen_attachment_close">返回郵件清單</string>
+    <string name="dual_screen_attachment_drag_title">跨螢幕拖放附件</string>
+    <string name="dual_screen_attachment_drag_description">將上螢幕附件拖到這裡並放開，即可在上螢幕安全預覽。</string>
+    <string name="dual_screen_attachment_drag_fallback">若螢幕邊界中斷手勢，可點選下方按鈕完成接力。</string>
+    <string name="dual_screen_attachment_drag_drop_action">投放並預覽</string>
+    <string name="dual_screen_attachment_drag_cancel">取消拖放</string>
+    <string name="dual_screen_attachment_drag_accessibility_action">將附件拖到下螢幕</string>
 </resources>

@@ -10,6 +10,10 @@ import com.fsck.k9.ui.R
 import com.fsck.k9.ui.helper.SizeFormatter
 import net.thunderbird.core.ui.theme.api.FeatureThemeProvider
 
+internal fun canBeginDualScreenAttachmentDrag(attachment: AttachmentViewInfo): Boolean {
+    return DualScreenAttachmentPreviewPolicy.canPreview(attachment)
+}
+
 internal class DualScreenAttachmentWorkspaceCoordinator(
     private val upperHost: ViewGroup,
     private val lowerHost: ViewGroup,
@@ -17,6 +21,8 @@ internal class DualScreenAttachmentWorkspaceCoordinator(
     private val onOpenExternally: (AttachmentViewInfo) -> Unit,
     private val onSave: (AttachmentViewInfo) -> Unit,
 ) {
+    private var pendingDragAttachment: AttachmentViewInfo? = null
+
     init {
         hideAndClearHosts()
     }
@@ -35,12 +41,30 @@ internal class DualScreenAttachmentWorkspaceCoordinator(
         return true
     }
 
-    fun dismiss() {
-        hideAndClearHosts()
+    fun beginDrag(attachment: AttachmentViewInfo): Boolean {
+        if (!canBeginDualScreenAttachmentDrag(attachment)) return false
+
+        dismiss()
+        pendingDragAttachment = attachment
+        bindLowerDropTarget(attachment)
+        lowerHost.isVisible = true
+        return true
     }
 
-    fun destroy() {
+    fun completePendingDrag(): Boolean {
+        val attachment = pendingDragAttachment ?: return false
+        return showIfSupported(attachment)
+    }
+
+    fun cancelPendingDrag(): Boolean {
+        if (pendingDragAttachment == null) return false
+
         dismiss()
+        return true
+    }
+
+    fun dismiss() {
+        hideAndClearHosts()
     }
 
     private fun bindUpperWorkspace(attachment: AttachmentViewInfo) {
@@ -88,6 +112,22 @@ internal class DualScreenAttachmentWorkspaceCoordinator(
         lowerHost.addView(actions, matchParentLayoutParams())
     }
 
+    private fun bindLowerDropTarget(attachment: AttachmentViewInfo) {
+        val dropTarget = ComposeView(lowerHost.context).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
+            setContent {
+                themeProvider.WithTheme {
+                    DualScreenAttachmentDropTarget(
+                        attachmentName = attachment.displayName,
+                        onDrop = { completePendingDrag() },
+                        onCancel = ::dismiss,
+                    )
+                }
+            }
+        }
+        lowerHost.addView(dropTarget, matchParentLayoutParams())
+    }
+
     private fun matchParentLayoutParams(): ViewGroup.LayoutParams {
         return ViewGroup.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
@@ -96,6 +136,7 @@ internal class DualScreenAttachmentWorkspaceCoordinator(
     }
 
     private fun hideAndClearHosts() {
+        pendingDragAttachment = null
         upperHost.removeAllViews()
         upperHost.isGone = true
         lowerHost.removeAllViews()

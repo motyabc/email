@@ -27,6 +27,46 @@ class DualScreenAttachmentWorkspaceTest {
     private val invokedActions = mutableListOf<String>()
 
     @Test
+    fun `drop target explains cross screen handoff and offers explicit actions`() {
+        setDropTargetContent()
+
+        composeTestRule.onNodeWithTag(ATTACHMENT_DROP_TARGET_TEST_TAG).assertIsDisplayed()
+        composeTestRule.onNodeWithText("Move attachment across screens").assertIsDisplayed()
+        composeTestRule.onNodeWithText("quarterly-report.png").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Drop and preview").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Cancel drag").assertIsDisplayed()
+    }
+
+    @Test
+    fun `drop target delegates drop and cancel actions once`() {
+        setDropTargetContent()
+
+        composeTestRule.onNodeWithTag(ATTACHMENT_DROP_ACTION_TEST_TAG).performClick()
+        composeTestRule.onNodeWithTag(ATTACHMENT_DROP_CANCEL_TEST_TAG).performClick()
+
+        assertThat(invokedActions).containsExactly("drop", "cancel")
+    }
+
+    @Test
+    @Config(qualifiers = "zh-rCN")
+    fun `drop target exposes simplified Chinese labels`() {
+        setDropTargetContent()
+
+        composeTestRule.onNodeWithText("跨屏拖放附件").assertIsDisplayed()
+        composeTestRule.onNodeWithText("投放并预览").assertIsDisplayed()
+        composeTestRule.onNodeWithText("取消拖放").assertIsDisplayed()
+    }
+
+    @Test
+    fun `drop target remains reachable at two hundred percent font scale`() {
+        setDropTargetContent(fontScale = 2f)
+
+        composeTestRule.onNodeWithTag(ATTACHMENT_DROP_TARGET_TEST_TAG).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(ATTACHMENT_DROP_ACTION_TEST_TAG).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(ATTACHMENT_DROP_CANCEL_TEST_TAG).assertIsDisplayed()
+    }
+
+    @Test
     fun `lower workspace presents attachment information and unique actions`() {
         setContent()
 
@@ -84,6 +124,23 @@ class DualScreenAttachmentWorkspaceTest {
                         onOpenExternally = { invokedActions.add("open") },
                         onSave = { invokedActions.add("save") },
                         onClose = { invokedActions.add("close") },
+                    )
+                }
+            }
+        }
+    }
+
+    private fun setDropTargetContent(fontScale: Float = 1f) {
+        composeTestRule.setContent {
+            val currentDensity = LocalDensity.current
+            CompositionLocalProvider(
+                LocalDensity provides Density(currentDensity.density, fontScale),
+            ) {
+                K9MailTheme2 {
+                    DualScreenAttachmentDropTarget(
+                        attachmentName = "quarterly-report.png",
+                        onDrop = { invokedActions.add("drop") },
+                        onCancel = { invokedActions.add("cancel") },
                     )
                 }
             }
