@@ -48,6 +48,8 @@ import com.fsck.k9.CoreResourceProvider
 import com.fsck.k9.Preferences
 import com.fsck.k9.activity.attachment.DualScreenAttachmentWorkspaceCoordinator
 import com.fsck.k9.activity.compose.DualScreenModeEntry
+import com.fsck.k9.activity.compose.DualScreenModeEntryCallbacks
+import com.fsck.k9.activity.compose.DualScreenModeEntryState
 import com.fsck.k9.activity.compose.MessageActions
 import com.fsck.k9.activity.smartassistant.NoOpSmartAssistantPanelHost
 import com.fsck.k9.activity.smartassistant.SmartAssistantAccountReference
@@ -88,8 +90,12 @@ import net.thunderbird.core.preference.DualScreenMode
 import net.thunderbird.core.preference.GeneralSettingsManager
 import net.thunderbird.core.preference.SplitViewMode
 import net.thunderbird.core.preference.display.coreSettings.DisplayCoreSettingsPreferenceManager
+import net.thunderbird.core.preference.interaction.DualScreenKeyAction
+import net.thunderbird.core.preference.interaction.DualScreenKeyBinding
+import net.thunderbird.core.preference.interaction.INTERACTION_SETTINGS_DEFAULT_DUAL_SCREEN_KEY_BINDING
 import net.thunderbird.core.preference.interaction.PostMarkAsUnreadNavigation
 import net.thunderbird.core.preference.interaction.PostRemoveNavigation
+import net.thunderbird.core.preference.update
 import net.thunderbird.core.ui.theme.api.FeatureThemeProvider
 import net.thunderbird.feature.account.storage.legacy.mapper.LegacyAccountDataMapper
 import net.thunderbird.feature.funding.api.FundingManager
@@ -160,7 +166,12 @@ open class MessageHomeActivity :
     private var dualScreenSpanCoordinator: DualScreenSpanCoordinator? = null
     private var smartAssistantPanelCoordinator: SmartAssistantPanelCoordinator? = null
     private var dualScreenAttachmentWorkspaceCoordinator: DualScreenAttachmentWorkspaceCoordinator? = null
+    private lateinit var dualScreenHardwareKeyController: DualScreenHardwareKeyController
+    private var dualScreenModeSelectionController: DualScreenModeSelectionController? = null
     private var isDualScreenModeEntryVisible by mutableStateOf(false)
+    private var isDualScreenModeDialogVisible by mutableStateOf(false)
+    private var dualScreenKeyBinding by mutableStateOf(INTERACTION_SETTINGS_DEFAULT_DUAL_SCREEN_KEY_BINDING)
+    private var dualScreenKeyCaptureState by mutableStateOf(DualScreenKeyCaptureState.IDLE)
     private var currentDualScreenRuntimeState = DualScreenRuntimeState.SINGLE_SCREEN
     private var dualScreenRecoverySnackbar: Snackbar? = null
     private lateinit var dualScreenDisplaySelector: DualScreenDisplaySelector
@@ -273,6 +284,7 @@ open class MessageHomeActivity :
 
     private fun initializeDualScreenRuntime() {
         savedDualScreenMode = displayCoreSettingsPreferenceManager.getConfig().dualScreenMode
+        dualScreenKeyBinding = generalSettingsManager.getConfig().interaction.dualScreenKeyBinding
         dualScreenDisplaySelector = DualScreenDisplaySelector(getSystemService(DisplayManager::class.java))
         initialDualScreenDisplayTarget =
             dualScreenDisplaySelector.findEligibleSecondaryDisplay(getDisplayIdCompat())
@@ -347,7 +359,8 @@ open class MessageHomeActivity :
         activityContent: ViewGroup,
         authoritativeRootView: View,
     ) {
-        val modeSelectionController = DualScreenModeSelectionController(
+        initializeDualScreenHardwareKeyController()
+        dualScreenModeSelectionController = DualScreenModeSelectionController(
             initialMode = savedDualScreenMode,
             persistMode = ::persistDualScreenMode,
             recreateActivity = ::recreate,
@@ -355,7 +368,7 @@ open class MessageHomeActivity :
         initializeDualScreenModeEntry(
             activityContent = activityContent,
             currentMode = savedDualScreenMode,
-            onModeSelected = { mode -> modeSelectionController.select(mode) },
+            onModeSelected = { mode -> dualScreenModeSelectionController?.select(mode) },
         )
         dualScreenSpanCoordinator = DualScreenSpanCoordinator(
             activity = this,
@@ -368,6 +381,10 @@ open class MessageHomeActivity :
             onRuntimeStateChanged = { state ->
                 currentDualScreenRuntimeState = state
                 isDualScreenModeEntryVisible = state.isDualScreenAvailable
+                if (!state.isDualScreenAvailable) {
+                    isDualScreenModeDialogVisible = false
+                    dualScreenHardwareKeyController.cancelCapture()
+                }
             },
             onRecoveryPendingChanged = { recoveryPending ->
                 dualScreenRecoveryViewModel.recoveryPending = recoveryPending
@@ -376,6 +393,25 @@ open class MessageHomeActivity :
                 updateDualScreenRecoveryPrompt(activityContent, recoveryAvailable)
             },
             onSmartWorkspaceLost = ::recreate,
+        )
+    }
+
+    private fun initializeDualScreenHardwareKeyController() {
+        dualScreenHardwareKeyController = DualScreenHardwareKeyController(
+            bindingProvider = { dualScreenKeyBinding },
+            isDualScreenAvailable = { currentDualScreenRuntimeState.isDualScreenAvailable },
+            isInteractionBlocked = {
+                isDualScreenModeDialogVisible ||
+                    !isSearchViewCollapsed() ||
+                    navigationDrawer?.isOpen == true
+            },
+            onBindingCaptured = { keyCode ->
+                val action = dualScreenKeyBinding.action.takeUnless { it == DualScreenKeyAction.DISABLED }
+                    ?: DualScreenKeyAction.OPEN_MODE_SELECTOR
+                persistDualScreenKeyBinding(DualScreenKeyBinding(keyCode, action))
+            },
+            onCaptureStateChanged = { state -> dualScreenKeyCaptureState = state },
+            performAction = ::performDualScreenKeyAction,
         )
     }
 
@@ -409,8 +445,28 @@ open class MessageHomeActivity :
                 featureThemeProvider.WithTheme {
                     DualScreenModeEntry(
                         visible = isDualScreenModeEntryVisible,
-                        currentMode = currentMode,
-                        onModeSelected = onModeSelected,
+                        state = DualScreenModeEntryState(
+                            currentMode = currentMode,
+                            keyBinding = dualScreenKeyBinding,
+                            keyCaptureState = dualScreenKeyCaptureState,
+                            dialogVisible = isDualScreenModeDialogVisible,
+                        ),
+                        callbacks = DualScreenModeEntryCallbacks(
+                            onModeSelected = onModeSelected,
+                            onDialogVisibilityChanged = { visible ->
+                                isDualScreenModeDialogVisible = visible
+                                if (!visible) dualScreenHardwareKeyController.cancelCapture()
+                            },
+                            onKeyActionSelected = { action ->
+                                persistDualScreenKeyBinding(dualScreenKeyBinding.copy(action = action))
+                            },
+                            onStartKeyCapture = dualScreenHardwareKeyController::startCapture,
+                            onCancelKeyCapture = dualScreenHardwareKeyController::cancelCapture,
+                            onDisableKeyBinding = {
+                                dualScreenHardwareKeyController.cancelCapture()
+                                persistDualScreenKeyBinding(INTERACTION_SETTINGS_DEFAULT_DUAL_SCREEN_KEY_BINDING)
+                            },
+                        ),
                     )
                 }
             }
@@ -426,6 +482,39 @@ open class MessageHomeActivity :
     private fun persistDualScreenMode(mode: DualScreenMode) {
         val currentSettings = displayCoreSettingsPreferenceManager.getConfig()
         displayCoreSettingsPreferenceManager.save(currentSettings.copy(dualScreenMode = mode))
+    }
+
+    private fun persistDualScreenKeyBinding(binding: DualScreenKeyBinding) {
+        dualScreenKeyBinding = binding
+        generalSettingsManager.update { settings ->
+            settings.copy(interaction = settings.interaction.copy(dualScreenKeyBinding = binding))
+        }
+    }
+
+    private fun performDualScreenKeyAction(action: DualScreenKeyAction) {
+        when (action) {
+            DualScreenKeyAction.DISABLED -> Unit
+            DualScreenKeyAction.OPEN_MODE_SELECTOR -> isDualScreenModeDialogVisible = true
+            DualScreenKeyAction.TOGGLE_MODE -> {
+                val nextMode = when (savedDualScreenMode) {
+                    DualScreenMode.IMMERSIVE -> DualScreenMode.SMART
+                    DualScreenMode.SMART -> DualScreenMode.IMMERSIVE
+                }
+                dualScreenModeSelectionController?.select(nextMode)
+            }
+
+            DualScreenKeyAction.PREVIOUS_MESSAGE -> {
+                if (messageViewContainerFragment != null && displayMode != DisplayMode.MESSAGE_LIST) {
+                    showPreviousMessage()
+                }
+            }
+
+            DualScreenKeyAction.NEXT_MESSAGE -> {
+                if (messageViewContainerFragment != null && displayMode != DisplayMode.MESSAGE_LIST) {
+                    showNextMessage()
+                }
+            }
+        }
     }
 
     private fun initializeFoldableObserver() {
@@ -887,6 +976,8 @@ open class MessageHomeActivity :
     }
 
     override fun onStop() {
+        if (::dualScreenHardwareKeyController.isInitialized) dualScreenHardwareKeyController.cancelCapture()
+        isDualScreenModeDialogVisible = false
         dualScreenAttachmentWorkspaceCoordinator?.dismiss()
         dualScreenSpanCoordinator?.stop()
         super.onStop()
@@ -899,6 +990,7 @@ open class MessageHomeActivity :
         smartAssistantPanelCoordinator = null
         dualScreenAttachmentWorkspaceCoordinator?.destroy()
         dualScreenAttachmentWorkspaceCoordinator = null
+        dualScreenModeSelectionController = null
         dualScreenSpanCoordinator?.destroy()
         dualScreenSpanCoordinator = null
         super.onDestroy()
@@ -1063,6 +1155,10 @@ open class MessageHomeActivity :
     protected open val isDrawerEnabled: Boolean = true
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (::dualScreenHardwareKeyController.isInitialized && dualScreenHardwareKeyController.handle(event)) {
+            return true
+        }
+
         var eventHandled = false
         if (event.action == KeyEvent.ACTION_DOWN && isSearchViewCollapsed()) {
             eventHandled = onCustomKeyDown(event)

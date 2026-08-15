@@ -58,6 +58,17 @@ class SettingsExporterTest : K9RobolectricTest() {
     }
 
     @Test
+    fun exportPreferences_includesSafeDualScreenKeyDefaults() {
+        val document = exportPreferences(true, emptySet())
+        val values = document.rootElement.getChild("global")
+            .getChildren("value")
+            .associate { element -> element.getAttributeValue("key") to element.text }
+
+        assertThat(values["dualScreenKeyCode"]).isEqualTo("0")
+        assertThat(values["dualScreenKeyAction"]).isEqualTo("DISABLED")
+    }
+
+    @Test
     fun exportPreferences_ignoresGlobalSettingsWhenRequested() {
         val document = exportPreferences(false, emptySet())
 

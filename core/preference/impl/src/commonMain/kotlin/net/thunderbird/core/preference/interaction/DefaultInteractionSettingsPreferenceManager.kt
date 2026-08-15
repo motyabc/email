@@ -47,6 +47,13 @@ class DefaultInteractionSettingsPreferenceManager(
             KEY_USE_VOLUME_KEYS_FOR_NAVIGATION,
             INTERACTION_SETTINGS_DEFAULT_USE_VOLUME_KEYS_NAVIGATION,
         ),
+        dualScreenKeyBinding = DualScreenKeyBinding(
+            keyCode = storage.getInt(
+                KEY_DUAL_SCREEN_KEY_CODE,
+                INTERACTION_SETTINGS_DEFAULT_DUAL_SCREEN_KEY_CODE,
+            ).coerceAtLeast(INTERACTION_SETTINGS_DEFAULT_DUAL_SCREEN_KEY_CODE),
+            action = loadDualScreenKeyAction(),
+        ),
         messageViewPostRemoveNavigation = storage.getStringOrDefault(
             KEY_MESSAGE_VIEW_POST_DELETE_ACTION,
             INTERACTION_SETTINGS_DEFAULT_MESSAGE_VIEW_POST_REMOVE_NAVIGATION,
@@ -85,11 +92,22 @@ class DefaultInteractionSettingsPreferenceManager(
         ),
     )
 
+    private fun loadDualScreenKeyAction(): DualScreenKeyAction {
+        val storedValue = storage.getStringOrNull(KEY_DUAL_SCREEN_KEY_ACTION)
+            ?: return DualScreenKeyAction.DISABLED
+        return DualScreenKeyAction.entries.firstOrNull { action -> action.name == storedValue }
+            ?: DualScreenKeyAction.DISABLED.also {
+                logger.warn(TAG) { "Invalid dual-screen hardware key action; disabling the binding" }
+            }
+    }
+
     private fun writeConfig(config: InteractionSettings) {
         logger.debug(TAG) { "writeConfig() called with: config = $config" }
         scope.launch(ioDispatcher) {
             mutex.withLock {
                 storageEditor.putBoolean(KEY_USE_VOLUME_KEYS_FOR_NAVIGATION, config.useVolumeKeysForNavigation)
+                storageEditor.putInt(KEY_DUAL_SCREEN_KEY_CODE, config.dualScreenKeyBinding.keyCode)
+                storageEditor.putEnum(KEY_DUAL_SCREEN_KEY_ACTION, config.dualScreenKeyBinding.action)
                 storageEditor.putString(KEY_MESSAGE_VIEW_POST_DELETE_ACTION, config.messageViewPostRemoveNavigation)
                 storageEditor.putEnum(
                     KEY_MESSAGE_VIEW_POST_MARK_AS_UNREAD_ACTION,
