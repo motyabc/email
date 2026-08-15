@@ -182,16 +182,18 @@ open class MessageHomeActivity :
 
         initializeDualScreenRuntime()
 
-        if (useSplitView()) {
-            setLayout(R.layout.split_message_list)
-        } else {
-            setLayout(R.layout.message_list)
-            viewSwitcher = findViewById<ViewSwitcher>(R.id.container).apply {
-                firstInAnimation = AnimationUtils.loadAnimation(this@MessageHomeActivity, R.anim.slide_in_left)
-                firstOutAnimation = AnimationUtils.loadAnimation(this@MessageHomeActivity, R.anim.slide_out_right)
-                secondInAnimation = AnimationUtils.loadAnimation(this@MessageHomeActivity, R.anim.slide_in_right)
-                secondOutAnimation = AnimationUtils.loadAnimation(this@MessageHomeActivity, R.anim.slide_out_left)
-                setOnSwitchCompleteListener(this@MessageHomeActivity)
+        when {
+            initialDualScreenRuntimeState.usesSmartWorkspace -> setLayout(R.layout.smart_message_list)
+            useSplitView() -> setLayout(R.layout.split_message_list)
+            else -> {
+                setLayout(R.layout.message_list)
+                viewSwitcher = findViewById<ViewSwitcher>(R.id.container).apply {
+                    firstInAnimation = AnimationUtils.loadAnimation(this@MessageHomeActivity, R.anim.slide_in_left)
+                    firstOutAnimation = AnimationUtils.loadAnimation(this@MessageHomeActivity, R.anim.slide_out_right)
+                    secondInAnimation = AnimationUtils.loadAnimation(this@MessageHomeActivity, R.anim.slide_in_right)
+                    secondOutAnimation = AnimationUtils.loadAnimation(this@MessageHomeActivity, R.anim.slide_out_left)
+                    setOnSwitchCompleteListener(this@MessageHomeActivity)
+                }
             }
         }
 
@@ -254,10 +256,12 @@ open class MessageHomeActivity :
             activity = this,
             sourceView = authoritativeRootView,
             dualScreenMode = savedDualScreenMode,
+            preparedRuntimeState = initialDualScreenRuntimeState,
             displaySelector = dualScreenDisplaySelector,
             onRuntimeStateChanged = { state ->
                 isDualScreenModeEntryVisible = state.isDualScreenAvailable
             },
+            onSmartWorkspaceLost = ::recreate,
         )
     }
 
@@ -461,21 +465,29 @@ open class MessageHomeActivity :
     }
 
     private fun useSplitView(): Boolean {
-        if (initialDualScreenRuntimeState.usesImmersiveCanvas) return false
-
-        val splitViewMode = generalSettingsManager.getConfig().display.coreSettings.splitViewMode
-        val orientation = resources.configuration.orientation
-        return when (splitViewMode) {
-            SplitViewMode.ALWAYS -> true
-            SplitViewMode.NEVER -> false
-            SplitViewMode.WHEN_IN_LANDSCAPE -> orientation == Configuration.ORIENTATION_LANDSCAPE
-            SplitViewMode.WHEN_UNFOLDED -> foldableStateObserver.currentState == FoldableState.UNFOLDED
+        return when {
+            initialDualScreenRuntimeState.usesSmartWorkspace -> true
+            initialDualScreenRuntimeState.usesImmersiveCanvas -> false
+            else -> {
+                val splitViewMode = generalSettingsManager.getConfig().display.coreSettings.splitViewMode
+                val orientation = resources.configuration.orientation
+                when (splitViewMode) {
+                    SplitViewMode.ALWAYS -> true
+                    SplitViewMode.NEVER -> false
+                    SplitViewMode.WHEN_IN_LANDSCAPE -> orientation == Configuration.ORIENTATION_LANDSCAPE
+                    SplitViewMode.WHEN_UNFOLDED -> foldableStateObserver.currentState == FoldableState.UNFOLDED
+                }
+            }
         }
     }
 
     private fun initializeLayout() {
         progressBar = findViewById(R.id.message_list_progress)
-        messageViewPlaceHolder = PlaceholderFragment()
+        messageViewPlaceHolder = if (initialDualScreenRuntimeState.usesSmartWorkspace) {
+            PlaceholderFragment.newInstance(R.string.dual_screen_smart_empty_message)
+        } else {
+            PlaceholderFragment()
+        }
     }
 
     private fun displayViews() {

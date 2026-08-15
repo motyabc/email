@@ -940,6 +940,7 @@
     <string name="dual_screen_mode_immersive_description">双屏连成一体，完整显示内容</string>
     <string name="dual_screen_mode_smart">智慧模式</string>
     <string name="dual_screen_mode_smart_description">上屏阅读邮件，下屏便捷处理</string>
+    <string name="dual_screen_smart_empty_message">请从下屏选择一封邮件</string>
     <string name="dual_screen_mode_close">关闭</string>
     <string name="dual_screen_mode_button_description">双屏模式，当前为%1$s</string>
 </resources>

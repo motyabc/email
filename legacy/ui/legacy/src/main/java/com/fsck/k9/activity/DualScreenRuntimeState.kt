@@ -14,6 +14,12 @@ internal enum class DualScreenRuntimeState {
     val usesImmersiveCanvas: Boolean
         get() = this == IMMERSIVE
 
+    val usesProjectedCanvas: Boolean
+        get() = this != SINGLE_SCREEN
+
+    val usesSmartWorkspace: Boolean
+        get() = this == SMART
+
     companion object {
         fun resolve(
             savedMode: DualScreenMode,
@@ -27,4 +33,12 @@ internal enum class DualScreenRuntimeState {
             }
         }
     }
+}
+
+internal fun DualScreenRuntimeState.requiresWorkspaceRecreation(nextState: DualScreenRuntimeState): Boolean {
+    return this == DualScreenRuntimeState.SMART && nextState == DualScreenRuntimeState.SINGLE_SCREEN
+}
+
+internal fun DualScreenRuntimeState.canActivatePreparedWorkspace(targetState: DualScreenRuntimeState): Boolean {
+    return targetState == DualScreenRuntimeState.SINGLE_SCREEN || this == targetState
 }

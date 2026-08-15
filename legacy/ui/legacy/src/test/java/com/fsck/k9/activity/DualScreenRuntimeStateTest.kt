@@ -30,6 +30,8 @@ class DualScreenRuntimeStateTest {
         assertThat(state).isEqualTo(DualScreenRuntimeState.IMMERSIVE)
         assertThat(state.isDualScreenAvailable).isTrue()
         assertThat(state.usesImmersiveCanvas).isTrue()
+        assertThat(state.usesProjectedCanvas).isTrue()
+        assertThat(state.usesSmartWorkspace).isFalse()
     }
 
     @Test
@@ -42,6 +44,8 @@ class DualScreenRuntimeStateTest {
         assertThat(state).isEqualTo(DualScreenRuntimeState.SMART)
         assertThat(state.isDualScreenAvailable).isTrue()
         assertThat(state.usesImmersiveCanvas).isFalse()
+        assertThat(state.usesProjectedCanvas).isTrue()
+        assertThat(state.usesSmartWorkspace).isTrue()
     }
 
     @Test
@@ -50,5 +54,36 @@ class DualScreenRuntimeStateTest {
 
         assertThat(state.isDualScreenAvailable).isFalse()
         assertThat(state.usesImmersiveCanvas).isFalse()
+        assertThat(state.usesProjectedCanvas).isFalse()
+        assertThat(state.usesSmartWorkspace).isFalse()
+    }
+
+    @Test
+    fun `only losing an active smart workspace requires activity recreation`() {
+        assertThat(
+            DualScreenRuntimeState.SMART.requiresWorkspaceRecreation(DualScreenRuntimeState.SINGLE_SCREEN),
+        ).isTrue()
+        assertThat(
+            DualScreenRuntimeState.IMMERSIVE.requiresWorkspaceRecreation(DualScreenRuntimeState.SINGLE_SCREEN),
+        ).isFalse()
+        assertThat(
+            DualScreenRuntimeState.SMART.requiresWorkspaceRecreation(DualScreenRuntimeState.SMART),
+        ).isFalse()
+    }
+
+    @Test
+    fun `workspace only activates when activity prepared the matching layout`() {
+        assertThat(
+            DualScreenRuntimeState.SMART.canActivatePreparedWorkspace(DualScreenRuntimeState.SMART),
+        ).isTrue()
+        assertThat(
+            DualScreenRuntimeState.SINGLE_SCREEN.canActivatePreparedWorkspace(DualScreenRuntimeState.SMART),
+        ).isFalse()
+        assertThat(
+            DualScreenRuntimeState.IMMERSIVE.canActivatePreparedWorkspace(DualScreenRuntimeState.SMART),
+        ).isFalse()
+        assertThat(
+            DualScreenRuntimeState.SMART.canActivatePreparedWorkspace(DualScreenRuntimeState.SINGLE_SCREEN),
+        ).isTrue()
     }
 }

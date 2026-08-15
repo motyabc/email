@@ -23,23 +23,26 @@ import java.lang.ref.WeakReference
 import net.thunderbird.core.preference.DualScreenMode
 
 /**
- * Presents one authoritative Activity view as a continuous vertical canvas across the two KEMI displays.
+ * Projects one authoritative Activity view across the two KEMI displays.
  *
- * Display 2 renders logical Y=0..1279. The Activity stays on Display 0 and its root view is translated so the
- * physical lower display renders logical Y=1280..2559. Touches from Display 2 are dispatched back to the same root
- * view; Display 0 touches are mapped by Android through the root view's translation.
+ * Immersive mode uses one continuous layout. Smart mode uses a dedicated two-zone layout with the message body in
+ * the upper zone and the list workspace in the lower zone. In both cases Display 2 renders logical Y=0..1279, while
+ * the Activity stays on Display 0 and renders logical Y=1280..2559. Both displays dispatch touches to the same UI
+ * tree and business state.
  */
 @Suppress("TooManyFunctions")
 internal class DualScreenSpanCoordinator(
     private val activity: MessageHomeActivity,
     private val sourceView: View,
     private val dualScreenMode: DualScreenMode,
+    private val preparedRuntimeState: DualScreenRuntimeState,
     private val geometry: DualScreenSpanGeometry = DualScreenSpanGeometry(),
     private val displaySelector: DualScreenDisplaySelector = DualScreenDisplaySelector(
         displayManager = activity.getSystemService(DisplayManager::class.java),
         geometry = geometry,
     ),
     private val onRuntimeStateChanged: (DualScreenRuntimeState) -> Unit = {},
+    private val onSmartWorkspaceLost: () -> Unit = {},
 ) : DisplayManager.DisplayListener {
     private val displayManager = activity.getSystemService(DisplayManager::class.java)
     private val originalRequestedOrientation = activity.requestedOrientation
@@ -86,22 +89,35 @@ internal class DualScreenSpanCoordinator(
         if (!started) return
 
         val secondaryDisplay = displaySelector.findEligibleSecondaryDisplay(activity.display?.displayId)
-        val targetState = DualScreenRuntimeState.resolve(
-            savedMode = dualScreenMode,
-            isEligibleSecondaryDisplayAvailable = secondaryDisplay != null,
-        )
+        val targetState = resolveTargetState(secondaryDisplay)
 
-        if (!targetState.usesImmersiveCanvas) {
+        if (!targetState.usesProjectedCanvas) {
+            val shouldRecreateWorkspace = runtimeState.requiresWorkspaceRecreation(targetState)
             deactivateSpanning()
             updateRuntimeState(targetState)
+            if (shouldRecreateWorkspace) onSmartWorkspaceLost()
             return
         }
 
-        checkNotNull(secondaryDisplay)
+        activateProjection(checkNotNull(secondaryDisplay), targetState)
+    }
 
+    private fun resolveTargetState(secondaryDisplay: Display?): DualScreenRuntimeState {
+        val resolvedState = DualScreenRuntimeState.resolve(
+            savedMode = dualScreenMode,
+            isEligibleSecondaryDisplayAvailable = secondaryDisplay != null,
+        )
+        return if (preparedRuntimeState.canActivatePreparedWorkspace(resolvedState)) {
+            resolvedState
+        } else {
+            DualScreenRuntimeState.SINGLE_SCREEN
+        }
+    }
+
+    private fun activateProjection(secondaryDisplay: Display, targetState: DualScreenRuntimeState) {
         val currentPresentation = secondaryPresentation
         if (currentPresentation?.display?.displayId == secondaryDisplay.displayId && currentPresentation.isShowing) {
-            updateRuntimeState(DualScreenRuntimeState.IMMERSIVE)
+            updateRuntimeState(targetState)
             return
         }
 
@@ -117,11 +133,15 @@ internal class DualScreenSpanCoordinator(
         )
         candidate.setOnDismissListener {
             if (secondaryPresentation === candidate) {
+                val shouldRecreateWorkspace = runtimeState.requiresWorkspaceRecreation(
+                    DualScreenRuntimeState.SINGLE_SCREEN,
+                )
                 secondaryPresentation = null
                 restoreSourceLayout()
                 restoreOrientation()
                 showSystemBars(activity.window)
                 updateRuntimeState(DualScreenRuntimeState.SINGLE_SCREEN)
+                if (started && shouldRecreateWorkspace) onSmartWorkspaceLost()
             }
         }
 
@@ -131,14 +151,18 @@ internal class DualScreenSpanCoordinator(
             applySpanningLayout()
             hideSystemBars(activity.window)
             candidate.requestFrame()
-            updateRuntimeState(DualScreenRuntimeState.IMMERSIVE)
+            updateRuntimeState(targetState)
         } catch (_: WindowManager.InvalidDisplayException) {
+            val shouldRecreateWorkspace = runtimeState.requiresWorkspaceRecreation(
+                DualScreenRuntimeState.SINGLE_SCREEN,
+            )
             candidate.setOnDismissListener(null)
             candidate.dismiss()
             restoreSourceLayout()
             restoreOrientation()
             showSystemBars(activity.window)
             updateRuntimeState(DualScreenRuntimeState.SINGLE_SCREEN)
+            if (started && shouldRecreateWorkspace) onSmartWorkspaceLost()
         }
     }
 

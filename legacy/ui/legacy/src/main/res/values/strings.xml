@@ -1153,6 +1153,7 @@ You can keep this message and use it as a backup for your secret key. If you wan
     <string name="dual_screen_mode_immersive_description">Use both screens as one continuous canvas</string>
     <string name="dual_screen_mode_smart">Smart mode</string>
     <string name="dual_screen_mode_smart_description">Read above and manage mail below</string>
+    <string name="dual_screen_smart_empty_message">Select a message from the lower screen</string>
     <string name="dual_screen_mode_close">Close</string>
     <string name="dual_screen_mode_button_description">Dual-screen mode, currently %1$s</string>
 </resources>
