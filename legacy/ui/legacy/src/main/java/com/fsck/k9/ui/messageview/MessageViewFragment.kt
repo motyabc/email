@@ -1098,6 +1098,7 @@ class MessageViewFragment :
         fun setProgress(enable: Boolean)
         fun performNavigationAfterMessageRemoval()
         fun performNavigationAfterMarkAsUnread()
+        fun onViewAttachmentInDualScreenWorkspace(attachment: AttachmentViewInfo): Boolean
     }
 
     private val messageLoaderCallbacks: MessageLoaderCallbacks = object : MessageLoaderCallbacks {
@@ -1175,7 +1176,9 @@ class MessageViewFragment :
     override fun onViewAttachment(attachment: AttachmentViewInfo) {
         currentAttachmentViewInfo = attachment
 
-        createAttachmentController(attachment).viewAttachment()
+        if (!fragmentListener.onViewAttachmentInDualScreenWorkspace(attachment)) {
+            openAttachmentExternally(attachment)
+        }
     }
 
     override fun onSaveAttachment(attachment: AttachmentViewInfo) {
@@ -1191,6 +1194,15 @@ class MessageViewFragment :
         } catch (_: ActivityNotFoundException) {
             Toast.makeText(requireContext(), R.string.error_activity_not_found, Toast.LENGTH_LONG).show()
         }
+    }
+
+    fun openAttachmentExternally(attachment: AttachmentViewInfo) {
+        currentAttachmentViewInfo = attachment
+        createAttachmentController(attachment).viewAttachment()
+    }
+
+    fun saveAttachment(attachment: AttachmentViewInfo) {
+        onSaveAttachment(attachment)
     }
 
     private fun createAttachmentController(attachment: AttachmentViewInfo?): AttachmentController {

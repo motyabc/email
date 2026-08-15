@@ -16,13 +16,29 @@
         android:orientation="vertical"
         >
 
-        <androidx.fragment.app.FragmentContainerView
-            android:id="@+id/message_view_container"
+        <FrameLayout
+            android:id="@+id/dual_screen_attachment_upper_workspace"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            tools:layout="@layout/message"
-            />
+            >
+
+            <androidx.fragment.app.FragmentContainerView
+                android:id="@+id/message_view_container"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                tools:layout="@layout/message"
+                />
+
+            <FrameLayout
+                android:id="@+id/dual_screen_attachment_preview_host"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone"
+                tools:visibility="gone"
+                />
+
+        </FrameLayout>
 
         <View
             android:id="@+id/smart_workspace_divider"
@@ -95,6 +111,14 @@
 
                 <FrameLayout
                     android:id="@+id/smart_assistant_panel_host"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:visibility="gone"
+                    tools:visibility="gone"
+                    />
+
+                <FrameLayout
+                    android:id="@+id/dual_screen_attachment_action_host"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:visibility="gone"

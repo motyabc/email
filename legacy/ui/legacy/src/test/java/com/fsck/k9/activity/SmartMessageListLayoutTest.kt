@@ -25,11 +25,18 @@ class SmartMessageListLayoutTest {
         val root = inflateSmartWorkspace(DualScreenDeviceProfiles.KEMI_GENERATION_1)
         val workspace = root.findViewById<LinearLayout>(R.id.smart_workspace)
 
-        assertThat(workspace.getChildAt(0).id).isEqualTo(R.id.message_view_container)
+        assertThat(workspace.getChildAt(0).id).isEqualTo(R.id.dual_screen_attachment_upper_workspace)
+        assertThat(workspace.getChildAt(0).findViewById<ViewGroup>(R.id.message_view_container)).isNotNull()
+        assertThat(
+            workspace.getChildAt(0).findViewById<ViewGroup>(R.id.dual_screen_attachment_preview_host).visibility,
+        ).isEqualTo(View.GONE)
         assertThat(workspace.getChildAt(2).id).isEqualTo(R.id.coordinator_layout)
         assertThat(workspace.getChildAt(2).findViewById<ViewGroup>(R.id.message_list_container)).isNotNull()
         assertThat(
             workspace.getChildAt(2).findViewById<ViewGroup>(R.id.smart_assistant_panel_host).visibility,
+        ).isEqualTo(View.GONE)
+        assertThat(
+            workspace.getChildAt(2).findViewById<ViewGroup>(R.id.dual_screen_attachment_action_host).visibility,
         ).isEqualTo(View.GONE)
     }
 

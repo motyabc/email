@@ -1170,4 +1170,11 @@ You can keep this message and use it as a backup for your secret key. If you wan
     <string name="dual_screen_compose_reference_no_subject">(No subject)</string>
     <string name="dual_screen_compose_reference_no_body">The original message has no readable text body.</string>
     <string name="dual_screen_compose_reference_truncated">The reference is very long. Only the first 100,000 characters are shown.</string>
+    <string name="dual_screen_attachment_workspace_title">Attachment workspace</string>
+    <string name="dual_screen_attachment_workspace_description">Preview above, then open the attachment with a system app or save a copy below.</string>
+    <string name="dual_screen_attachment_preview_description">Attachment preview</string>
+    <string name="dual_screen_attachment_preview_error">This image couldn’t be previewed. You can still use the system viewer below.</string>
+    <string name="dual_screen_attachment_details"><xliff:g id="mime_type">%1$s</xliff:g> · <xliff:g id="size">%2$s</xliff:g></string>
+    <string name="dual_screen_attachment_open_external">Open with system app</string>
+    <string name="dual_screen_attachment_close">Return to message list</string>
 </resources>

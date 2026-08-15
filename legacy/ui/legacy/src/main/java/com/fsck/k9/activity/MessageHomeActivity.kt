@@ -46,6 +46,7 @@ import app.k9mail.feature.launcher.FeatureLauncherTarget
 import app.k9mail.legacy.message.controller.MessageReference
 import com.fsck.k9.CoreResourceProvider
 import com.fsck.k9.Preferences
+import com.fsck.k9.activity.attachment.DualScreenAttachmentWorkspaceCoordinator
 import com.fsck.k9.activity.compose.DualScreenModeEntry
 import com.fsck.k9.activity.compose.MessageActions
 import com.fsck.k9.activity.smartassistant.NoOpSmartAssistantPanelHost
@@ -56,6 +57,7 @@ import com.fsck.k9.activity.smartassistant.SmartAssistantScene
 import com.fsck.k9.activity.smartassistant.toSmartAssistantDraftReference
 import com.fsck.k9.activity.smartassistant.toSmartAssistantMessageReference
 import com.fsck.k9.controller.MessagingController
+import com.fsck.k9.mailstore.AttachmentViewInfo
 import com.fsck.k9.search.isUnifiedFolders
 import com.fsck.k9.ui.BuildConfig
 import com.fsck.k9.ui.R
@@ -157,6 +159,7 @@ open class MessageHomeActivity :
     private var messageViewContainerFragment: MessageViewContainerFragment? = null
     private var dualScreenSpanCoordinator: DualScreenSpanCoordinator? = null
     private var smartAssistantPanelCoordinator: SmartAssistantPanelCoordinator? = null
+    private var dualScreenAttachmentWorkspaceCoordinator: DualScreenAttachmentWorkspaceCoordinator? = null
     private var isDualScreenModeEntryVisible by mutableStateOf(false)
     private var currentDualScreenRuntimeState = DualScreenRuntimeState.SINGLE_SCREEN
     private var dualScreenRecoverySnackbar: Snackbar? = null
@@ -220,6 +223,7 @@ open class MessageHomeActivity :
         val authoritativeRootView = activityContent.getChildAt(0)
         configureInitialDualScreenLayout(authoritativeRootView)
         initializeSmartAssistantPanel()
+        initializeDualScreenAttachmentWorkspace()
         initializeDualScreenExperience(activityContent, authoritativeRootView)
 
         initializeActionBar()
@@ -298,6 +302,22 @@ open class MessageHomeActivity :
         smartAssistantPanelCoordinator = SmartAssistantPanelCoordinator(
             container = container,
             panelHost = NoOpSmartAssistantPanelHost,
+        )
+    }
+
+    private fun initializeDualScreenAttachmentWorkspace() {
+        val upperHost = findViewById<ViewGroup>(R.id.dual_screen_attachment_preview_host) ?: return
+        val lowerHost = findViewById<ViewGroup>(R.id.dual_screen_attachment_action_host) ?: return
+        dualScreenAttachmentWorkspaceCoordinator = DualScreenAttachmentWorkspaceCoordinator(
+            upperHost = upperHost,
+            lowerHost = lowerHost,
+            themeProvider = featureThemeProvider,
+            onOpenExternally = { attachment ->
+                messageViewContainerFragment?.openAttachmentExternally(attachment)
+            },
+            onSave = { attachment ->
+                messageViewContainerFragment?.saveAttachment(attachment)
+            },
         )
     }
 
@@ -867,6 +887,7 @@ open class MessageHomeActivity :
     }
 
     override fun onStop() {
+        dualScreenAttachmentWorkspaceCoordinator?.dismiss()
         dualScreenSpanCoordinator?.stop()
         super.onStop()
     }
@@ -876,6 +897,8 @@ open class MessageHomeActivity :
         dualScreenRecoverySnackbar = null
         smartAssistantPanelCoordinator?.destroy()
         smartAssistantPanelCoordinator = null
+        dualScreenAttachmentWorkspaceCoordinator?.destroy()
+        dualScreenAttachmentWorkspaceCoordinator = null
         dualScreenSpanCoordinator?.destroy()
         dualScreenSpanCoordinator = null
         super.onDestroy()
@@ -1337,6 +1360,7 @@ open class MessageHomeActivity :
     }
 
     override fun openMessage(messageReference: MessageReference) {
+        dualScreenAttachmentWorkspaceCoordinator?.dismiss()
         val account = accountManager.getAccount(messageReference.accountUuid) ?: error("Account not found")
         val folderId = messageReference.folderId
 
@@ -1390,6 +1414,10 @@ open class MessageHomeActivity :
 
     override fun onReplyAll(messageReference: MessageReference, decryptionResultForReply: Parcelable?) {
         MessageActions.actionReply(this, messageReference, true, decryptionResultForReply)
+    }
+
+    override fun onViewAttachmentInDualScreenWorkspace(attachment: AttachmentViewInfo): Boolean {
+        return dualScreenAttachmentWorkspaceCoordinator?.showIfSupported(attachment) == true
     }
 
     override fun onCompose(account: LegacyAccount?) {
@@ -1489,6 +1517,7 @@ open class MessageHomeActivity :
     }
 
     private fun showMessageViewPlaceHolder() {
+        dualScreenAttachmentWorkspaceCoordinator?.dismiss()
         removeMessageViewContainerFragment()
 
         // Add placeholder fragment if necessary
@@ -1532,6 +1561,7 @@ open class MessageHomeActivity :
     override fun setActiveMessage(messageReference: MessageReference) {
         val messageListFragment = checkNotNull(messageListFragment)
 
+        dualScreenAttachmentWorkspaceCoordinator?.dismiss()
         messageListFragment.setActiveMessage(messageReference)
         updateSmartAssistantContext(SmartAssistantScene.MESSAGE_READING, messageReference)
     }

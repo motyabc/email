@@ -14,6 +14,7 @@ import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.MarginPageTransformer
 import androidx.viewpager2.widget.ViewPager2
 import app.k9mail.legacy.message.controller.MessageReference
+import com.fsck.k9.mailstore.AttachmentViewInfo
 import com.fsck.k9.ui.R
 import com.fsck.k9.ui.base.extensions.withArguments
 import com.fsck.k9.ui.messagelist.MessageListItem
@@ -226,6 +227,14 @@ class MessageViewContainerFragment : Fragment() {
 
     fun onDelete() {
         messageViewFragment.onDelete()
+    }
+
+    fun openAttachmentExternally(attachment: AttachmentViewInfo) {
+        messageViewFragment.openAttachmentExternally(attachment)
+    }
+
+    fun saveAttachment(attachment: AttachmentViewInfo) {
+        messageViewFragment.saveAttachment(attachment)
     }
 
     private class MessageViewContainerAdapter(
