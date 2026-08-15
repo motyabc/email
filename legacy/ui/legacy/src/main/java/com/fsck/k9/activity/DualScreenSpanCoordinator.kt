@@ -20,6 +20,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat.Type.systemBars
 import androidx.core.view.WindowInsetsControllerCompat
 import java.lang.ref.WeakReference
+import net.thunderbird.core.preference.DualScreenMode
 
 /**
  * Presents one authoritative Activity view as a continuous vertical canvas across the two KEMI displays.
@@ -32,8 +33,13 @@ import java.lang.ref.WeakReference
 internal class DualScreenSpanCoordinator(
     private val activity: MessageHomeActivity,
     private val sourceView: View,
+    private val dualScreenMode: DualScreenMode,
     private val geometry: DualScreenSpanGeometry = DualScreenSpanGeometry(),
-    private val onSpanningStateChanged: (Boolean) -> Unit = {},
+    private val displaySelector: DualScreenDisplaySelector = DualScreenDisplaySelector(
+        displayManager = activity.getSystemService(DisplayManager::class.java),
+        geometry = geometry,
+    ),
+    private val onRuntimeStateChanged: (DualScreenRuntimeState) -> Unit = {},
 ) : DisplayManager.DisplayListener {
     private val displayManager = activity.getSystemService(DisplayManager::class.java)
     private val originalRequestedOrientation = activity.requestedOrientation
@@ -43,7 +49,7 @@ internal class DualScreenSpanCoordinator(
 
     private var started = false
     private var orientationLocked = false
-    private var spanningActive = false
+    private var runtimeState = DualScreenRuntimeState.SINGLE_SCREEN
     private var secondaryPresentation: SpanPresentation? = null
 
     fun start() {
@@ -60,6 +66,7 @@ internal class DualScreenSpanCoordinator(
         started = false
         displayManager.unregisterDisplayListener(this)
         deactivateSpanning()
+        updateRuntimeState(DualScreenRuntimeState.SINGLE_SCREEN)
     }
 
     fun destroy() {
@@ -78,15 +85,23 @@ internal class DualScreenSpanCoordinator(
     private fun reconcileDisplays() {
         if (!started) return
 
-        val secondaryDisplay = findEligibleSecondaryDisplay()
-        if (secondaryDisplay == null || activity.display?.displayId != Display.DEFAULT_DISPLAY) {
+        val secondaryDisplay = displaySelector.findEligibleSecondaryDisplay(activity.display?.displayId)
+        val targetState = DualScreenRuntimeState.resolve(
+            savedMode = dualScreenMode,
+            isEligibleSecondaryDisplayAvailable = secondaryDisplay != null,
+        )
+
+        if (!targetState.usesImmersiveCanvas) {
             deactivateSpanning()
+            updateRuntimeState(targetState)
             return
         }
 
+        checkNotNull(secondaryDisplay)
+
         val currentPresentation = secondaryPresentation
         if (currentPresentation?.display?.displayId == secondaryDisplay.displayId && currentPresentation.isShowing) {
-            updateSpanningState(active = true)
+            updateRuntimeState(DualScreenRuntimeState.IMMERSIVE)
             return
         }
 
@@ -106,7 +121,7 @@ internal class DualScreenSpanCoordinator(
                 restoreSourceLayout()
                 restoreOrientation()
                 showSystemBars(activity.window)
-                updateSpanningState(active = false)
+                updateRuntimeState(DualScreenRuntimeState.SINGLE_SCREEN)
             }
         }
 
@@ -116,28 +131,15 @@ internal class DualScreenSpanCoordinator(
             applySpanningLayout()
             hideSystemBars(activity.window)
             candidate.requestFrame()
-            updateSpanningState(active = true)
+            updateRuntimeState(DualScreenRuntimeState.IMMERSIVE)
         } catch (_: WindowManager.InvalidDisplayException) {
             candidate.setOnDismissListener(null)
             candidate.dismiss()
             restoreSourceLayout()
             restoreOrientation()
             showSystemBars(activity.window)
-            updateSpanningState(active = false)
+            updateRuntimeState(DualScreenRuntimeState.SINGLE_SCREEN)
         }
-    }
-
-    private fun findEligibleSecondaryDisplay(): Display? {
-        val eligibleDisplays = displayManager.getDisplays(
-            DisplayManager.DISPLAY_CATEGORY_PRESENTATION,
-        ).filter { display ->
-            display.state == Display.STATE_ON &&
-                display.displayId != Display.DEFAULT_DISPLAY &&
-                geometry.matches(display.mode.physicalWidth, display.mode.physicalHeight)
-        }
-
-        return eligibleDisplays.firstOrNull { it.displayId == PREFERRED_SECONDARY_DISPLAY_ID }
-            ?: eligibleDisplays.firstOrNull()
     }
 
     private fun applySpanningLayout() {
@@ -154,14 +156,13 @@ internal class DualScreenSpanCoordinator(
         restoreSourceLayout()
         restoreOrientation()
         showSystemBars(activity.window)
-        updateSpanningState(active = false)
     }
 
-    private fun updateSpanningState(active: Boolean) {
-        if (spanningActive == active) return
+    private fun updateRuntimeState(state: DualScreenRuntimeState) {
+        if (runtimeState == state) return
 
-        spanningActive = active
-        onSpanningStateChanged(active)
+        runtimeState = state
+        onRuntimeStateChanged(state)
     }
 
     private fun dismissSecondaryPresentation() {
@@ -313,7 +314,6 @@ internal class DualScreenSpanCoordinator(
     }
 
     private companion object {
-        const val PREFERRED_SECONDARY_DISPLAY_ID = 2
         const val BOOTSTRAP_FRAME_WINDOW_MILLIS = 1_500L
     }
 }

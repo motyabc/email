@@ -4,6 +4,7 @@ import android.app.SearchManager
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
+import android.hardware.display.DisplayManager
 import android.os.Bundle
 import android.os.Parcelable
 import android.view.Gravity
@@ -142,6 +143,9 @@ open class MessageHomeActivity :
     private var messageViewContainerFragment: MessageViewContainerFragment? = null
     private var dualScreenSpanCoordinator: DualScreenSpanCoordinator? = null
     private var isDualScreenModeEntryVisible by mutableStateOf(false)
+    private lateinit var dualScreenDisplaySelector: DualScreenDisplaySelector
+    private var savedDualScreenMode = DualScreenMode.IMMERSIVE
+    private var initialDualScreenRuntimeState = DualScreenRuntimeState.SINGLE_SCREEN
     private var account: LegacyAccountDto? = null
     private var search: LocalMessageSearch? = null
     private var singleFolderMode = false
@@ -176,6 +180,8 @@ open class MessageHomeActivity :
             return
         }
 
+        initializeDualScreenRuntime()
+
         if (useSplitView()) {
             setLayout(R.layout.split_message_list)
         } else {
@@ -191,22 +197,7 @@ open class MessageHomeActivity :
 
         val activityContent = findViewById<ViewGroup>(android.R.id.content)
         val authoritativeRootView = activityContent.getChildAt(0)
-        val currentDualScreenMode = displayCoreSettingsPreferenceManager.getConfig().dualScreenMode
-        val modeSelectionController = DualScreenModeSelectionController(
-            initialMode = currentDualScreenMode,
-            persistMode = ::persistDualScreenMode,
-            recreateActivity = ::recreate,
-        )
-        initializeDualScreenModeEntry(
-            activityContent = activityContent,
-            currentMode = currentDualScreenMode,
-            onModeSelected = { mode -> modeSelectionController.select(mode) },
-        )
-        dualScreenSpanCoordinator = DualScreenSpanCoordinator(
-            activity = this,
-            sourceView = authoritativeRootView,
-            onSpanningStateChanged = { active -> isDualScreenModeEntryVisible = active },
-        )
+        initializeDualScreenExperience(activityContent, authoritativeRootView)
 
         initializeActionBar()
         initializeDrawer()
@@ -233,6 +224,41 @@ open class MessageHomeActivity :
             }
         }
         onBackPressedDispatcher.addCallback(this, backPressedCallback)
+    }
+
+    private fun initializeDualScreenRuntime() {
+        savedDualScreenMode = displayCoreSettingsPreferenceManager.getConfig().dualScreenMode
+        dualScreenDisplaySelector = DualScreenDisplaySelector(getSystemService(DisplayManager::class.java))
+        initialDualScreenRuntimeState = DualScreenRuntimeState.resolve(
+            savedMode = savedDualScreenMode,
+            isEligibleSecondaryDisplayAvailable =
+            dualScreenDisplaySelector.findEligibleSecondaryDisplay(display?.displayId) != null,
+        )
+    }
+
+    private fun initializeDualScreenExperience(
+        activityContent: ViewGroup,
+        authoritativeRootView: View,
+    ) {
+        val modeSelectionController = DualScreenModeSelectionController(
+            initialMode = savedDualScreenMode,
+            persistMode = ::persistDualScreenMode,
+            recreateActivity = ::recreate,
+        )
+        initializeDualScreenModeEntry(
+            activityContent = activityContent,
+            currentMode = savedDualScreenMode,
+            onModeSelected = { mode -> modeSelectionController.select(mode) },
+        )
+        dualScreenSpanCoordinator = DualScreenSpanCoordinator(
+            activity = this,
+            sourceView = authoritativeRootView,
+            dualScreenMode = savedDualScreenMode,
+            displaySelector = dualScreenDisplaySelector,
+            onRuntimeStateChanged = { state ->
+                isDualScreenModeEntryVisible = state.isDualScreenAvailable
+            },
+        )
     }
 
     private fun initializeDualScreenModeEntry(
@@ -435,6 +461,8 @@ open class MessageHomeActivity :
     }
 
     private fun useSplitView(): Boolean {
+        if (initialDualScreenRuntimeState.usesImmersiveCanvas) return false
+
         val splitViewMode = generalSettingsManager.getConfig().display.coreSettings.splitViewMode
         val orientation = resources.configuration.orientation
         return when (splitViewMode) {
