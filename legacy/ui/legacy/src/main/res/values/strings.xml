@@ -1199,4 +1199,13 @@ You can keep this message and use it as a backup for your secret key. If you wan
     <string name="dual_screen_attachment_drag_drop_action">Drop and preview</string>
     <string name="dual_screen_attachment_drag_cancel">Cancel drag</string>
     <string name="dual_screen_attachment_drag_accessibility_action">Move attachment to lower screen</string>
+    <string name="dual_screen_attachment_continuous_open">Read across both screens</string>
+    <string name="dual_screen_continuous_reader_loading">Preparing secure continuous view…</string>
+    <string name="dual_screen_continuous_reader_error">This attachment can’t be rendered safely in continuous view. You can still open it with a system app or save it.</string>
+    <string name="dual_screen_continuous_reader_image_description">Long image in continuous dual-screen view</string>
+    <string name="dual_screen_continuous_reader_pdf_description">PDF in continuous dual-screen view</string>
+    <string name="dual_screen_continuous_reader_page"><xliff:g id="current">%1$d</xliff:g> of <xliff:g id="total">%2$d</xliff:g></string>
+    <string name="dual_screen_continuous_reader_zoom_out">Zoom out</string>
+    <string name="dual_screen_continuous_reader_zoom_in">Zoom in</string>
+    <string name="dual_screen_continuous_reader_zoom_reset"><xliff:g id="percent">%1$d</xliff:g>%%</string>
 </resources>

@@ -262,7 +262,7 @@ open class MessageHomeActivity :
 
         val backPressedCallback = object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (dualScreenAttachmentWorkspaceCoordinator?.cancelPendingDrag() != true) {
+                if (dualScreenAttachmentWorkspaceCoordinator?.handleBack() != true) {
                     this@MessageHomeActivity.handleOnBackPressed(this)
                 }
             }
@@ -322,19 +322,23 @@ open class MessageHomeActivity :
     }
 
     private fun initializeDualScreenAttachmentWorkspace() {
-        val upperHost = findViewById<ViewGroup>(R.id.dual_screen_attachment_preview_host) ?: return
-        val lowerHost = findViewById<ViewGroup>(R.id.dual_screen_attachment_action_host) ?: return
-        dualScreenAttachmentWorkspaceCoordinator = DualScreenAttachmentWorkspaceCoordinator(
-            upperHost = upperHost,
-            lowerHost = lowerHost,
-            themeProvider = featureThemeProvider,
-            onOpenExternally = { attachment ->
-                messageViewContainerFragment?.openAttachmentExternally(attachment)
-            },
-            onSave = { attachment ->
-                messageViewContainerFragment?.saveAttachment(attachment)
-            },
-        )
+        val upperHost = findViewById<ViewGroup>(R.id.dual_screen_attachment_preview_host)
+        val lowerHost = findViewById<ViewGroup>(R.id.dual_screen_attachment_action_host)
+        val continuousReaderHost = findViewById<ViewGroup>(R.id.dual_screen_continuous_reader_host)
+        if (upperHost != null && lowerHost != null && continuousReaderHost != null) {
+            dualScreenAttachmentWorkspaceCoordinator = DualScreenAttachmentWorkspaceCoordinator(
+                upperHost = upperHost,
+                lowerHost = lowerHost,
+                continuousReaderHost = continuousReaderHost,
+                themeProvider = featureThemeProvider,
+                onOpenExternally = { attachment ->
+                    messageViewContainerFragment?.openAttachmentExternally(attachment)
+                },
+                onSave = { attachment ->
+                    messageViewContainerFragment?.saveAttachment(attachment)
+                },
+            )
+        }
     }
 
     private fun updateSmartAssistantContext(

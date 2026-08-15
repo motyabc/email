@@ -46,24 +46,39 @@ class DualScreenAttachmentWorkspaceCoordinatorTest {
     }
 
     @Test
+    fun `bounded pdf opens one full canvas reader and clears split hosts`() {
+        val fixture = createFixture()
+
+        assertThat(fixture.testSubject.showIfSupported(createAttachment(mimeType = "application/pdf"))).isTrue()
+
+        assertThat(fixture.upperHost.visibility).isEqualTo(View.GONE)
+        assertThat(fixture.lowerHost.visibility).isEqualTo(View.GONE)
+        assertThat(fixture.continuousReaderHost.visibility).isEqualTo(View.VISIBLE)
+        assertThat(fixture.continuousReaderHost.childCount).isEqualTo(1)
+    }
+
+    @Test
+    fun `image workspace can transition to one full canvas reader`() {
+        val fixture = createFixture()
+        val attachment = createAttachment()
+        fixture.testSubject.showIfSupported(attachment)
+
+        assertThat(fixture.testSubject.showContinuousIfSupported(attachment)).isTrue()
+
+        assertThat(fixture.upperHost.visibility).isEqualTo(View.GONE)
+        assertThat(fixture.lowerHost.visibility).isEqualTo(View.GONE)
+        assertThat(fixture.continuousReaderHost.visibility).isEqualTo(View.VISIBLE)
+    }
+
+    @Test
     fun `cancel pending drag clears target without opening preview`() {
         val fixture = createFixture()
         fixture.testSubject.beginDrag(createAttachment())
 
-        assertThat(fixture.testSubject.cancelPendingDrag()).isTrue()
+        assertThat(fixture.testSubject.handleBack()).isTrue()
         assertThat(fixture.testSubject.completePendingDrag()).isFalse()
 
         assertHostsCleared(fixture)
-    }
-
-    @Test
-    fun `cancel without pending drag leaves workspace untouched`() {
-        val fixture = createFixture()
-        fixture.testSubject.showIfSupported(createAttachment())
-
-        assertThat(fixture.testSubject.cancelPendingDrag()).isFalse()
-        assertThat(fixture.upperHost.visibility).isEqualTo(View.VISIBLE)
-        assertThat(fixture.lowerHost.visibility).isEqualTo(View.VISIBLE)
     }
 
     @Test
@@ -86,7 +101,7 @@ class DualScreenAttachmentWorkspaceCoordinatorTest {
         val fixture = createFixture()
         fixture.testSubject.showIfSupported(createAttachment())
 
-        val handled = fixture.testSubject.showIfSupported(createAttachment(mimeType = "application/pdf"))
+        val handled = fixture.testSubject.showIfSupported(createAttachment(mimeType = "application/zip"))
 
         assertThat(handled).isFalse()
         assertHostsCleared(fixture)
@@ -102,11 +117,24 @@ class DualScreenAttachmentWorkspaceCoordinatorTest {
         assertHostsCleared(fixture)
     }
 
+    @Test
+    fun `back closes any active reader before activity navigation`() {
+        val fixture = createFixture()
+        fixture.testSubject.showContinuousIfSupported(createAttachment())
+
+        assertThat(fixture.testSubject.handleBack()).isTrue()
+        assertThat(fixture.testSubject.handleBack()).isFalse()
+
+        assertHostsCleared(fixture)
+    }
+
     private fun assertHostsCleared(fixture: Fixture) {
         assertThat(fixture.upperHost.visibility).isEqualTo(View.GONE)
         assertThat(fixture.lowerHost.visibility).isEqualTo(View.GONE)
         assertThat(fixture.upperHost.childCount).isEqualTo(0)
         assertThat(fixture.lowerHost.childCount).isEqualTo(0)
+        assertThat(fixture.continuousReaderHost.visibility).isEqualTo(View.GONE)
+        assertThat(fixture.continuousReaderHost.childCount).isEqualTo(0)
     }
 
     private fun createFixture(
@@ -120,14 +148,16 @@ class DualScreenAttachmentWorkspaceCoordinatorTest {
         )
         val upperHost = FrameLayout(themedContext)
         val lowerHost = FrameLayout(themedContext)
+        val continuousReaderHost = FrameLayout(themedContext)
         val coordinator = DualScreenAttachmentWorkspaceCoordinator(
             upperHost = upperHost,
             lowerHost = lowerHost,
+            continuousReaderHost = continuousReaderHost,
             themeProvider = FakeThemeProvider,
             onOpenExternally = onOpenExternally,
             onSave = onSave,
         )
-        return Fixture(coordinator, upperHost, lowerHost)
+        return Fixture(coordinator, upperHost, lowerHost, continuousReaderHost)
     }
 
     private fun createAttachment(mimeType: String = "image/png"): AttachmentViewInfo {
@@ -146,6 +176,7 @@ class DualScreenAttachmentWorkspaceCoordinatorTest {
         val testSubject: DualScreenAttachmentWorkspaceCoordinator,
         val upperHost: FrameLayout,
         val lowerHost: FrameLayout,
+        val continuousReaderHost: FrameLayout,
     )
 
     private object FakeThemeProvider : FeatureThemeProvider {

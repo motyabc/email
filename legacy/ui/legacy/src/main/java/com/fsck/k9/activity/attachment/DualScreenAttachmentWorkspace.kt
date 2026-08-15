@@ -54,6 +54,7 @@ internal const val ATTACHMENT_ACTIONS_TEST_TAG = "dual_screen_attachment_actions
 internal const val ATTACHMENT_OPEN_TEST_TAG = "dual_screen_attachment_open"
 internal const val ATTACHMENT_SAVE_TEST_TAG = "dual_screen_attachment_save"
 internal const val ATTACHMENT_CLOSE_TEST_TAG = "dual_screen_attachment_close"
+internal const val ATTACHMENT_CONTINUOUS_READING_TEST_TAG = "dual_screen_attachment_continuous_reading"
 internal const val ATTACHMENT_DROP_TARGET_TEST_TAG = "dual_screen_attachment_drop_target"
 internal const val ATTACHMENT_DROP_ACTION_TEST_TAG = "dual_screen_attachment_drop_action"
 internal const val ATTACHMENT_DROP_CANCEL_TEST_TAG = "dual_screen_attachment_drop_cancel"
@@ -85,6 +86,7 @@ internal fun DualScreenAttachmentActions(
     attachmentDetails: String,
     onOpenExternally: () -> Unit,
     onSave: () -> Unit,
+    onReadContinuously: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -118,6 +120,12 @@ internal fun DualScreenAttachmentActions(
                 icon = Icons.Outlined.Download,
                 onClick = onSave,
                 modifier = Modifier.fillMaxWidth().testTag(ATTACHMENT_SAVE_TEST_TAG),
+            )
+            ButtonOutlined(
+                text = stringResource(R.string.dual_screen_attachment_continuous_open),
+                icon = Icons.Outlined.Visibility,
+                onClick = onReadContinuously,
+                modifier = Modifier.fillMaxWidth().testTag(ATTACHMENT_CONTINUOUS_READING_TEST_TAG),
             )
             ButtonText(
                 text = stringResource(R.string.dual_screen_attachment_close),

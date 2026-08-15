@@ -8,6 +8,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import assertk.assertThat
 import assertk.assertions.containsExactly
@@ -76,6 +77,7 @@ class DualScreenAttachmentWorkspaceTest {
         composeTestRule.onNodeWithText("image/png · 2.1 MB").assertIsDisplayed()
         composeTestRule.onNodeWithText("Open with system app").assertIsDisplayed()
         composeTestRule.onNodeWithText("Save attachment").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Read across both screens").performScrollTo().assertIsDisplayed()
         composeTestRule.onNodeWithText("Return to message list").assertIsDisplayed()
     }
 
@@ -85,9 +87,10 @@ class DualScreenAttachmentWorkspaceTest {
 
         composeTestRule.onNodeWithTag(ATTACHMENT_OPEN_TEST_TAG).performClick()
         composeTestRule.onNodeWithTag(ATTACHMENT_SAVE_TEST_TAG).performClick()
+        composeTestRule.onNodeWithTag(ATTACHMENT_CONTINUOUS_READING_TEST_TAG).performClick()
         composeTestRule.onNodeWithTag(ATTACHMENT_CLOSE_TEST_TAG).performClick()
 
-        assertThat(invokedActions).containsExactly("open", "save", "close")
+        assertThat(invokedActions).containsExactly("open", "save", "read", "close")
     }
 
     @Test
@@ -98,6 +101,7 @@ class DualScreenAttachmentWorkspaceTest {
         composeTestRule.onNodeWithText("附件工作台").assertIsDisplayed()
         composeTestRule.onNodeWithText("使用系统应用打开").assertIsDisplayed()
         composeTestRule.onNodeWithText("保存附件").assertIsDisplayed()
+        composeTestRule.onNodeWithText("双屏连续阅读").performScrollTo().assertIsDisplayed()
         composeTestRule.onNodeWithText("返回邮件列表").assertIsDisplayed()
     }
 
@@ -108,7 +112,8 @@ class DualScreenAttachmentWorkspaceTest {
         composeTestRule.onNodeWithTag(ATTACHMENT_ACTIONS_TEST_TAG).assertIsDisplayed()
         composeTestRule.onNodeWithTag(ATTACHMENT_OPEN_TEST_TAG).assertIsDisplayed()
         composeTestRule.onNodeWithTag(ATTACHMENT_SAVE_TEST_TAG).assertIsDisplayed()
-        composeTestRule.onNodeWithTag(ATTACHMENT_CLOSE_TEST_TAG).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(ATTACHMENT_CONTINUOUS_READING_TEST_TAG).performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithTag(ATTACHMENT_CLOSE_TEST_TAG).performScrollTo().assertIsDisplayed()
     }
 
     private fun setContent(fontScale: Float = 1f) {
@@ -123,6 +128,7 @@ class DualScreenAttachmentWorkspaceTest {
                         attachmentDetails = "image/png · 2.1 MB",
                         onOpenExternally = { invokedActions.add("open") },
                         onSave = { invokedActions.add("save") },
+                        onReadContinuously = { invokedActions.add("read") },
                         onClose = { invokedActions.add("close") },
                     )
                 }

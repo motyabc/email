@@ -945,4 +945,13 @@
     <string name="dual_screen_attachment_drag_drop_action">投放並預覽</string>
     <string name="dual_screen_attachment_drag_cancel">取消拖放</string>
     <string name="dual_screen_attachment_drag_accessibility_action">將附件拖到下螢幕</string>
+    <string name="dual_screen_attachment_continuous_open">雙螢幕連續閱讀</string>
+    <string name="dual_screen_continuous_reader_loading">正在準備安全連續檢視…</string>
+    <string name="dual_screen_continuous_reader_error">無法安全呈現此附件。你仍可使用系統應用程式開啟或儲存附件。</string>
+    <string name="dual_screen_continuous_reader_image_description">雙螢幕連續閱讀長圖片</string>
+    <string name="dual_screen_continuous_reader_pdf_description">雙螢幕連續閱讀 PDF</string>
+    <string name="dual_screen_continuous_reader_page">第 <xliff:g id="current">%1$d</xliff:g> 頁，共 <xliff:g id="total">%2$d</xliff:g> 頁</string>
+    <string name="dual_screen_continuous_reader_zoom_out">縮小</string>
+    <string name="dual_screen_continuous_reader_zoom_in">放大</string>
+    <string name="dual_screen_continuous_reader_zoom_reset"><xliff:g id="percent">%1$d</xliff:g>%%</string>
 </resources>

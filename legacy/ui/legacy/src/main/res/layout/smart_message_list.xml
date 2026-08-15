@@ -8,13 +8,19 @@
     tools:context="com.fsck.k9.activity.MessageHomeActivity"
     >
 
-    <LinearLayout
+    <FrameLayout
         android:id="@+id/smart_workspace"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:baselineAligned="false"
-        android:orientation="vertical"
         >
+
+        <LinearLayout
+            android:id="@+id/smart_workspace_content"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:baselineAligned="false"
+            android:orientation="vertical"
+            >
 
         <FrameLayout
             android:id="@+id/dual_screen_attachment_upper_workspace"
@@ -52,12 +58,12 @@
          This lower workspace deliberately keeps the established RelativeLayout hierarchy from message_list.xml.
          The existing list navigation relies on strict toolbar/container measurement ordering.
         -->
-        <RelativeLayout
-            android:id="@+id/coordinator_layout"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            >
+            <RelativeLayout
+                android:id="@+id/coordinator_layout"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                >
 
             <com.google.android.material.appbar.AppBarLayout
                 android:id="@+id/app_bar_layout"
@@ -127,9 +133,19 @@
 
             </FrameLayout>
 
-        </RelativeLayout>
+            </RelativeLayout>
 
-    </LinearLayout>
+        </LinearLayout>
+
+        <FrameLayout
+            android:id="@+id/dual_screen_continuous_reader_host"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"
+            tools:visibility="gone"
+            />
+
+    </FrameLayout>
 
     <include
         layout="@layout/navigation_drawer_content"

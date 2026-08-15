@@ -17,6 +17,7 @@ internal fun canBeginDualScreenAttachmentDrag(attachment: AttachmentViewInfo): B
 internal class DualScreenAttachmentWorkspaceCoordinator(
     private val upperHost: ViewGroup,
     private val lowerHost: ViewGroup,
+    private val continuousReaderHost: ViewGroup,
     private val themeProvider: FeatureThemeProvider,
     private val onOpenExternally: (AttachmentViewInfo) -> Unit,
     private val onSave: (AttachmentViewInfo) -> Unit,
@@ -28,16 +29,31 @@ internal class DualScreenAttachmentWorkspaceCoordinator(
     }
 
     fun showIfSupported(attachment: AttachmentViewInfo): Boolean {
-        if (!DualScreenAttachmentPreviewPolicy.canPreview(attachment)) {
+        return when (DualScreenContinuousReadingPolicy.readingType(attachment)) {
+            ContinuousReadingType.IMAGE -> {
+                dismiss()
+                bindImageWorkspace(attachment)
+                upperHost.isVisible = true
+                lowerHost.isVisible = true
+                true
+            }
+            ContinuousReadingType.PDF -> showContinuousIfSupported(attachment)
+            null -> {
+                dismiss()
+                false
+            }
+        }
+    }
+
+    fun showContinuousIfSupported(attachment: AttachmentViewInfo): Boolean {
+        if (!DualScreenContinuousReadingPolicy.canRead(attachment)) {
             dismiss()
             return false
         }
 
         dismiss()
-        bindUpperWorkspace(attachment)
-        bindLowerWorkspace(attachment)
-        upperHost.isVisible = true
-        lowerHost.isVisible = true
+        bindContinuousReader(attachment)
+        continuousReaderHost.isVisible = true
         return true
     }
 
@@ -56,18 +72,20 @@ internal class DualScreenAttachmentWorkspaceCoordinator(
         return showIfSupported(attachment)
     }
 
-    fun cancelPendingDrag(): Boolean {
-        if (pendingDragAttachment == null) return false
-
-        dismiss()
-        return true
-    }
-
     fun dismiss() {
         hideAndClearHosts()
     }
 
-    private fun bindUpperWorkspace(attachment: AttachmentViewInfo) {
+    fun handleBack(): Boolean {
+        val hasActiveWorkspace = pendingDragAttachment != null ||
+            upperHost.isVisible ||
+            lowerHost.isVisible ||
+            continuousReaderHost.isVisible
+        if (hasActiveWorkspace) dismiss()
+        return hasActiveWorkspace
+    }
+
+    private fun bindImageWorkspace(attachment: AttachmentViewInfo) {
         val preview = ComposeView(upperHost.context).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
             setContent {
@@ -80,10 +98,6 @@ internal class DualScreenAttachmentWorkspaceCoordinator(
                 }
             }
         }
-        upperHost.addView(preview, matchParentLayoutParams())
-    }
-
-    private fun bindLowerWorkspace(attachment: AttachmentViewInfo) {
         val details = lowerHost.context.getString(
             R.string.dual_screen_attachment_details,
             attachment.mimeType,
@@ -104,11 +118,13 @@ internal class DualScreenAttachmentWorkspaceCoordinator(
                             dismiss()
                             onSave(attachment)
                         },
+                        onReadContinuously = { showContinuousIfSupported(attachment) },
                         onClose = ::dismiss,
                     )
                 }
             }
         }
+        upperHost.addView(preview, matchParentLayoutParams())
         lowerHost.addView(actions, matchParentLayoutParams())
     }
 
@@ -128,11 +144,27 @@ internal class DualScreenAttachmentWorkspaceCoordinator(
         lowerHost.addView(dropTarget, matchParentLayoutParams())
     }
 
-    private fun matchParentLayoutParams(): ViewGroup.LayoutParams {
-        return ViewGroup.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.MATCH_PARENT,
-        )
+    private fun bindContinuousReader(attachment: AttachmentViewInfo) {
+        val reader = ComposeView(continuousReaderHost.context).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
+            setContent {
+                themeProvider.WithTheme {
+                    DualScreenContinuousReader(
+                        attachment = attachment,
+                        onOpenExternally = {
+                            dismiss()
+                            onOpenExternally(attachment)
+                        },
+                        onSave = {
+                            dismiss()
+                            onSave(attachment)
+                        },
+                        onClose = ::dismiss,
+                    )
+                }
+            }
+        }
+        continuousReaderHost.addView(reader, matchParentLayoutParams())
     }
 
     private fun hideAndClearHosts() {
@@ -141,5 +173,14 @@ internal class DualScreenAttachmentWorkspaceCoordinator(
         upperHost.isGone = true
         lowerHost.removeAllViews()
         lowerHost.isGone = true
+        continuousReaderHost.removeAllViews()
+        continuousReaderHost.isGone = true
     }
+}
+
+private fun matchParentLayoutParams(): ViewGroup.LayoutParams {
+    return ViewGroup.LayoutParams(
+        ViewGroup.LayoutParams.MATCH_PARENT,
+        ViewGroup.LayoutParams.MATCH_PARENT,
+    )
 }
