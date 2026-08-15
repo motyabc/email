@@ -58,3 +58,4 @@ Copy this template into the access-controlled release record for every candidate
 - Release owner decision: Approve / Reject
 - Security owner decision: Approve / Reject
 - Decision timestamp (UTC):
+
