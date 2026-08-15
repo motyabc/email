@@ -4,6 +4,7 @@ import android.content.Context
 import android.view.ContextThemeWrapper
 import android.view.Gravity
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.drawerlayout.widget.DrawerLayout
@@ -27,6 +28,9 @@ class SmartMessageListLayoutTest {
         assertThat(workspace.getChildAt(0).id).isEqualTo(R.id.message_view_container)
         assertThat(workspace.getChildAt(2).id).isEqualTo(R.id.coordinator_layout)
         assertThat(workspace.getChildAt(2).findViewById<ViewGroup>(R.id.message_list_container)).isNotNull()
+        assertThat(
+            workspace.getChildAt(2).findViewById<ViewGroup>(R.id.smart_assistant_panel_host).visibility,
+        ).isEqualTo(View.GONE)
     }
 
     @Test

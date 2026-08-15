@@ -45,6 +45,14 @@ import com.fsck.k9.CoreResourceProvider
 import com.fsck.k9.Preferences
 import com.fsck.k9.activity.compose.DualScreenModeEntry
 import com.fsck.k9.activity.compose.MessageActions
+import com.fsck.k9.activity.smartassistant.NoOpSmartAssistantPanelHost
+import com.fsck.k9.activity.smartassistant.SmartAssistantAccountReference
+import com.fsck.k9.activity.smartassistant.SmartAssistantContext
+import com.fsck.k9.activity.smartassistant.SmartAssistantFolderReference
+import com.fsck.k9.activity.smartassistant.SmartAssistantPanelCoordinator
+import com.fsck.k9.activity.smartassistant.SmartAssistantScene
+import com.fsck.k9.activity.smartassistant.toSmartAssistantDraftReference
+import com.fsck.k9.activity.smartassistant.toSmartAssistantMessageReference
 import com.fsck.k9.controller.MessagingController
 import com.fsck.k9.search.isUnifiedFolders
 import com.fsck.k9.ui.BuildConfig
@@ -142,6 +150,7 @@ open class MessageHomeActivity :
     private var messageListFragment: MessageListFragmentBridgeContract? = null
     private var messageViewContainerFragment: MessageViewContainerFragment? = null
     private var dualScreenSpanCoordinator: DualScreenSpanCoordinator? = null
+    private var smartAssistantPanelCoordinator: SmartAssistantPanelCoordinator? = null
     private var isDualScreenModeEntryVisible by mutableStateOf(false)
     private lateinit var dualScreenDisplaySelector: DualScreenDisplaySelector
     private var savedDualScreenMode = DualScreenMode.IMMERSIVE
@@ -196,6 +205,7 @@ open class MessageHomeActivity :
                 }
             }
         }
+        initializeSmartAssistantPanel()
 
         val activityContent = findViewById<ViewGroup>(android.R.id.content)
         val authoritativeRootView = activityContent.getChildAt(0)
@@ -217,6 +227,14 @@ open class MessageHomeActivity :
         initializeLayout()
         initializeFragments()
         displayViews()
+        updateSmartAssistantContext(
+            scene = if (messageViewContainerFragment != null) {
+                SmartAssistantScene.MESSAGE_READING
+            } else {
+                SmartAssistantScene.MESSAGE_LIST
+            },
+            messageReference = messageReference,
+        )
         initializeFunding()
         initializeFoldableObserver()
 
@@ -236,6 +254,34 @@ open class MessageHomeActivity :
             isEligibleSecondaryDisplayAvailable =
             dualScreenDisplaySelector.findEligibleSecondaryDisplay(display?.displayId) != null,
         )
+    }
+
+    private fun initializeSmartAssistantPanel() {
+        val container = findViewById<ViewGroup>(R.id.smart_assistant_panel_host) ?: return
+        smartAssistantPanelCoordinator = SmartAssistantPanelCoordinator(
+            container = container,
+            panelHost = NoOpSmartAssistantPanelHost,
+        )
+    }
+
+    private fun updateSmartAssistantContext(
+        scene: SmartAssistantScene,
+        messageReference: MessageReference? = null,
+    ) {
+        smartAssistantPanelCoordinator?.updateContext {
+            val accountUuid = messageReference?.accountUuid ?: account?.uuid
+            SmartAssistantContext(
+                scene = scene,
+                account = accountUuid?.let(::SmartAssistantAccountReference),
+                folder = messageReference?.let { reference ->
+                    SmartAssistantFolderReference(reference.accountUuid, reference.folderId)
+                },
+                message = messageReference?.takeIf { scene == SmartAssistantScene.MESSAGE_READING }
+                    ?.toSmartAssistantMessageReference(),
+                draft = messageReference?.takeIf { scene == SmartAssistantScene.DRAFT_COMPOSING }
+                    ?.toSmartAssistantDraftReference(),
+            )
+        }
     }
 
     private fun initializeDualScreenExperience(
@@ -743,6 +789,8 @@ open class MessageHomeActivity :
     }
 
     override fun onDestroy() {
+        smartAssistantPanelCoordinator?.destroy()
+        smartAssistantPanelCoordinator = null
         dualScreenSpanCoordinator?.destroy()
         dualScreenSpanCoordinator = null
         super.onDestroy()
@@ -1209,6 +1257,7 @@ open class MessageHomeActivity :
         val draftsFolderId = account.draftsFolderId
         if (draftsFolderId != null && folderId == draftsFolderId) {
             displayMode = DisplayMode.MESSAGE_LIST
+            updateSmartAssistantContext(SmartAssistantScene.DRAFT_COMPOSING, messageReference)
             MessageActions.actionEditDraft(this, messageReference)
         } else {
             val fragment = MessageViewContainerFragment.newInstance(
@@ -1230,6 +1279,8 @@ open class MessageHomeActivity :
             } else {
                 showMessageView()
             }
+
+            updateSmartAssistantContext(SmartAssistantScene.MESSAGE_READING, messageReference)
         }
 
         collapseSearchView()
@@ -1363,6 +1414,7 @@ open class MessageHomeActivity :
         }
 
         messageListFragment!!.setActiveMessage(null)
+        updateSmartAssistantContext(SmartAssistantScene.MESSAGE_LIST)
     }
 
     private fun removeMessageViewContainerFragment() {

@@ -93,6 +93,14 @@
 
                 </FrameLayout>
 
+                <FrameLayout
+                    android:id="@+id/smart_assistant_panel_host"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:visibility="gone"
+                    tools:visibility="gone"
+                    />
+
             </FrameLayout>
 
         </RelativeLayout>
