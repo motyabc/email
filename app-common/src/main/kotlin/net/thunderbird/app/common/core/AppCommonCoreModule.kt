@@ -5,6 +5,7 @@ import net.thunderbird.app.common.appVersion.DefaultAppVersionProvider
 import net.thunderbird.app.common.core.configstore.appCommonCoreConfigStoreModule
 import net.thunderbird.app.common.core.logging.appCommonCoreLogger
 import net.thunderbird.app.common.core.ui.appCommonCoreUiModule
+import net.thunderbird.core.android.crashreport.crashReportModule
 import net.thunderbird.core.common.provider.AppVersionProvider
 import net.thunderbird.core.file.AndroidDirectoryProvider
 import net.thunderbird.core.file.AndroidFileSystemManager
@@ -24,6 +25,7 @@ val appCommonCoreModule: Module = module {
         appCommonCoreConfigStoreModule,
         appCommonCoreLogger,
         appCommonCoreUiModule,
+        crashReportModule,
     )
 
     single<FileSystemManager> {

@@ -1,21 +1,22 @@
 package net.thunderbird.core.common.exception
 
-import kotlinx.coroutines.runBlocking
-import net.thunderbird.core.logging.file.FileLogSink
-import net.thunderbird.core.logging.legacy.Log
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
-import org.koin.core.qualifier.named
-
 class ExceptionHandler(
     private val defaultHandler: Thread.UncaughtExceptionHandler?,
-) : Thread.UncaughtExceptionHandler, KoinComponent {
-    private val syncDebugFileLogSink: FileLogSink by inject(named("syncDebug"))
+    private val exceptionRecorder: (Throwable) -> Unit = {},
+) : Thread.UncaughtExceptionHandler {
+    @Volatile
+    private var handlingException = false
 
     override fun uncaughtException(t: Thread, e: Throwable) {
-        Log.e("UncaughtException", e.toString(), e)
-        runBlocking {
-            syncDebugFileLogSink.flushAndCloseBuffer()
+        if (!handlingException) {
+            handlingException = true
+            try {
+                exceptionRecorder(e)
+            } catch (_: Throwable) {
+                // The original uncaught exception must always reach the platform handler.
+            } finally {
+                handlingException = false
+            }
         }
         defaultHandler?.uncaughtException(t, e)
     }

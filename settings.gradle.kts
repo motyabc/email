@@ -188,6 +188,7 @@ include(
     ":core:android:account",
     ":core:android:common",
     ":core:android:contact",
+    ":core:android:crashreport",
     ":core:android:logging",
     ":core:android:network",
     ":core:android:permissions",

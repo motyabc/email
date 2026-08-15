@@ -22,6 +22,7 @@ dependencies {
     implementation(projects.legacy.ui.base)
     implementation(projects.core.android.account)
     implementation(projects.core.android.common)
+    implementation(projects.core.android.crashreport)
 
     implementation(projects.core.logging.api)
     implementation(projects.core.logging.implComposite)

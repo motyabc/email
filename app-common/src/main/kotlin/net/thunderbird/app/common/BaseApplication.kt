@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import net.thunderbird.app.common.feature.LoggerLifecycleObserver
+import net.thunderbird.core.android.crashreport.CrashReportRecorder
 import net.thunderbird.core.common.exception.ExceptionHandler
 import net.thunderbird.core.logging.Logger
 import net.thunderbird.core.logging.file.FileLogSink
@@ -43,6 +44,7 @@ abstract class BaseApplication : Application(), WorkManagerConfiguration.Provide
     private val messageListWidgetManager: MessageListWidgetManager by inject()
     private val workManagerConfigurationProvider: WorkManagerConfigurationProvider by inject()
     private val logger: Logger by inject()
+    private val crashReportRecorder: CrashReportRecorder by inject()
     private val syncDebugFileLogSink: FileLogSink by inject(named("syncDebug"))
 
     private val appCoroutineScope: CoroutineScope = MainScope()
@@ -56,6 +58,7 @@ abstract class BaseApplication : Application(), WorkManagerConfiguration.Provide
         Log.logger = logger
 
         super.attachBaseContext(base)
+        installExceptionHandler()
     }
 
     override fun onCreate() {
@@ -71,13 +74,17 @@ abstract class BaseApplication : Application(), WorkManagerConfiguration.Provide
         messagingListenerProvider.listeners.forEach { listener ->
             messagingController.addListener(listener)
         }
-        val originalHandler = Thread.getDefaultUncaughtExceptionHandler()
-        Thread.setDefaultUncaughtExceptionHandler(ExceptionHandler(originalHandler))
-
         ProcessLifecycleOwner.get().lifecycle.addObserver(LoggerLifecycleObserver(syncDebugFileLogSink))
     }
 
     abstract fun provideAppModule(): Module
+
+    private fun installExceptionHandler() {
+        val originalHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler(
+            ExceptionHandler(originalHandler) { throwable -> crashReportRecorder.record(throwable) },
+        )
+    }
 
     private fun initializeAppLanguage() {
         appLanguageManager.init()
