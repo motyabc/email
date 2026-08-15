@@ -894,4 +894,11 @@
     <string name="debug_feature_flags">除錯：功能標幟</string>
     <string name="account_setup_auto_select_folder">自動選取資料夾</string>
     <string name="navigation_drawer_preferences">側邊選單</string>
+    <string name="dual_screen_mode_dialog_title">雙螢幕模式</string>
+    <string name="dual_screen_mode_immersive">沉浸模式</string>
+    <string name="dual_screen_mode_immersive_description">雙螢幕連成一體，完整顯示內容</string>
+    <string name="dual_screen_mode_smart">智慧模式</string>
+    <string name="dual_screen_mode_smart_description">上螢幕閱讀郵件，下螢幕便捷處理</string>
+    <string name="dual_screen_mode_close">關閉</string>
+    <string name="dual_screen_mode_button_description">雙螢幕模式，目前為%1$s</string>
 </resources>

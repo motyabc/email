@@ -6,15 +6,22 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
 import android.os.Parcelable
+import android.view.Gravity
 import android.view.KeyEvent
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AnimationUtils
+import android.widget.FrameLayout
 import android.widget.ProgressBar
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.view.ActionMode
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.view.isGone
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.drawerlayout.widget.DrawerLayout.DrawerListener
@@ -35,6 +42,7 @@ import app.k9mail.feature.launcher.FeatureLauncherTarget
 import app.k9mail.legacy.message.controller.MessageReference
 import com.fsck.k9.CoreResourceProvider
 import com.fsck.k9.Preferences
+import com.fsck.k9.activity.compose.DualScreenModeEntry
 import com.fsck.k9.activity.compose.MessageActions
 import com.fsck.k9.controller.MessagingController
 import com.fsck.k9.search.isUnifiedFolders
@@ -60,10 +68,13 @@ import net.thunderbird.core.android.account.LegacyAccountDtoManager
 import net.thunderbird.core.android.common.startup.DatabaseUpgradeInterceptor
 import net.thunderbird.core.logging.Logger
 import net.thunderbird.core.logging.legacy.Log
+import net.thunderbird.core.preference.DualScreenMode
 import net.thunderbird.core.preference.GeneralSettingsManager
 import net.thunderbird.core.preference.SplitViewMode
+import net.thunderbird.core.preference.display.coreSettings.DisplayCoreSettingsPreferenceManager
 import net.thunderbird.core.preference.interaction.PostMarkAsUnreadNavigation
 import net.thunderbird.core.preference.interaction.PostRemoveNavigation
+import net.thunderbird.core.ui.theme.api.FeatureThemeProvider
 import net.thunderbird.feature.account.storage.legacy.mapper.LegacyAccountDataMapper
 import net.thunderbird.feature.funding.api.FundingManager
 import net.thunderbird.feature.navigation.drawer.api.NavigationDrawer
@@ -108,6 +119,7 @@ open class MessageHomeActivity :
     private val accountManager: LegacyAccountDtoManager by inject()
     private val defaultFolderProvider: DefaultFolderProvider by inject()
     private val generalSettingsManager: GeneralSettingsManager by inject()
+    private val displayCoreSettingsPreferenceManager: DisplayCoreSettingsPreferenceManager by inject()
     private val messagingController: MessagingController by inject()
     private val contactRepository: ContactRepository by inject()
     private val coreResourceProvider: CoreResourceProvider by inject()
@@ -115,6 +127,7 @@ open class MessageHomeActivity :
     private val logger: Logger by inject()
     private val legacyAccountDataMapper: LegacyAccountDataMapper by inject()
     private val databaseUpgradeInterceptor: DatabaseUpgradeInterceptor by inject()
+    private val featureThemeProvider: FeatureThemeProvider by inject()
 
     private val foldableStateObserver: FoldableStateObserver by inject { parametersOf(this) }
 
@@ -128,6 +141,7 @@ open class MessageHomeActivity :
     private var messageListFragment: MessageListFragmentBridgeContract? = null
     private var messageViewContainerFragment: MessageViewContainerFragment? = null
     private var dualScreenSpanCoordinator: DualScreenSpanCoordinator? = null
+    private var isDualScreenModeEntryVisible by mutableStateOf(false)
     private var account: LegacyAccountDto? = null
     private var search: LocalMessageSearch? = null
     private var singleFolderMode = false
@@ -177,7 +191,22 @@ open class MessageHomeActivity :
 
         val activityContent = findViewById<ViewGroup>(android.R.id.content)
         val authoritativeRootView = activityContent.getChildAt(0)
-        dualScreenSpanCoordinator = DualScreenSpanCoordinator(this, authoritativeRootView)
+        val currentDualScreenMode = displayCoreSettingsPreferenceManager.getConfig().dualScreenMode
+        val modeSelectionController = DualScreenModeSelectionController(
+            initialMode = currentDualScreenMode,
+            persistMode = ::persistDualScreenMode,
+            recreateActivity = ::recreate,
+        )
+        initializeDualScreenModeEntry(
+            activityContent = activityContent,
+            currentMode = currentDualScreenMode,
+            onModeSelected = { mode -> modeSelectionController.select(mode) },
+        )
+        dualScreenSpanCoordinator = DualScreenSpanCoordinator(
+            activity = this,
+            sourceView = authoritativeRootView,
+            onSpanningStateChanged = { active -> isDualScreenModeEntryVisible = active },
+        )
 
         initializeActionBar()
         initializeDrawer()
@@ -204,6 +233,36 @@ open class MessageHomeActivity :
             }
         }
         onBackPressedDispatcher.addCallback(this, backPressedCallback)
+    }
+
+    private fun initializeDualScreenModeEntry(
+        activityContent: ViewGroup,
+        currentMode: DualScreenMode,
+        onModeSelected: (DualScreenMode) -> Unit,
+    ) {
+        val modeEntry = ComposeView(this).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                featureThemeProvider.WithTheme {
+                    DualScreenModeEntry(
+                        visible = isDualScreenModeEntryVisible,
+                        currentMode = currentMode,
+                        onModeSelected = onModeSelected,
+                    )
+                }
+            }
+        }
+        val layoutParams = FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            Gravity.START or Gravity.BOTTOM,
+        )
+        activityContent.addView(modeEntry, layoutParams)
+    }
+
+    private fun persistDualScreenMode(mode: DualScreenMode) {
+        val currentSettings = displayCoreSettingsPreferenceManager.getConfig()
+        displayCoreSettingsPreferenceManager.save(currentSettings.copy(dualScreenMode = mode))
     }
 
     private fun initializeFoldableObserver() {

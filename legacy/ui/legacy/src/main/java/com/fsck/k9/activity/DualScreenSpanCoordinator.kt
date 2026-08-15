@@ -33,6 +33,7 @@ internal class DualScreenSpanCoordinator(
     private val activity: MessageHomeActivity,
     private val sourceView: View,
     private val geometry: DualScreenSpanGeometry = DualScreenSpanGeometry(),
+    private val onSpanningStateChanged: (Boolean) -> Unit = {},
 ) : DisplayManager.DisplayListener {
     private val displayManager = activity.getSystemService(DisplayManager::class.java)
     private val originalRequestedOrientation = activity.requestedOrientation
@@ -42,6 +43,7 @@ internal class DualScreenSpanCoordinator(
 
     private var started = false
     private var orientationLocked = false
+    private var spanningActive = false
     private var secondaryPresentation: SpanPresentation? = null
 
     fun start() {
@@ -84,6 +86,7 @@ internal class DualScreenSpanCoordinator(
 
         val currentPresentation = secondaryPresentation
         if (currentPresentation?.display?.displayId == secondaryDisplay.displayId && currentPresentation.isShowing) {
+            updateSpanningState(active = true)
             return
         }
 
@@ -103,6 +106,7 @@ internal class DualScreenSpanCoordinator(
                 restoreSourceLayout()
                 restoreOrientation()
                 showSystemBars(activity.window)
+                updateSpanningState(active = false)
             }
         }
 
@@ -112,12 +116,14 @@ internal class DualScreenSpanCoordinator(
             applySpanningLayout()
             hideSystemBars(activity.window)
             candidate.requestFrame()
+            updateSpanningState(active = true)
         } catch (_: WindowManager.InvalidDisplayException) {
             candidate.setOnDismissListener(null)
             candidate.dismiss()
             restoreSourceLayout()
             restoreOrientation()
             showSystemBars(activity.window)
+            updateSpanningState(active = false)
         }
     }
 
@@ -148,6 +154,14 @@ internal class DualScreenSpanCoordinator(
         restoreSourceLayout()
         restoreOrientation()
         showSystemBars(activity.window)
+        updateSpanningState(active = false)
+    }
+
+    private fun updateSpanningState(active: Boolean) {
+        if (spanningActive == active) return
+
+        spanningActive = active
+        onSpanningStateChanged(active)
     }
 
     private fun dismissSecondaryPresentation() {
