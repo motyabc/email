@@ -5,6 +5,10 @@ local.properties
 # Kotlin
 .kotlin/
 
+# Python
+__pycache__/
+*.py[cod]
+
 # mdBook
 book/
 

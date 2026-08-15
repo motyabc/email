@@ -11,8 +11,9 @@ command -v docker &> /dev/null || fail "Docker is not installed"
 # Default values
 debug=false
 
-IMAGE_SAST="fluidattacks/sast:latest"
-IMAGE_SCA="fluidattacks/sca:latest"
+# Reviewed on 2026-08-15. Keep scanner updates explicit and independently reviewable.
+IMAGE_SAST="fluidattacks/sast@sha256:265860ce69205b4c69e07354bc592d7c4f64a260529c3c6e89c51e101ee9284c"
+IMAGE_SCA="fluidattacks/sca@sha256:2777cc84ee9d4253398da56d587bb2abd002fdd054117aa96f148621ac6e022e"
 
 # Parse command-line arguments
 for arg in "$@"; do

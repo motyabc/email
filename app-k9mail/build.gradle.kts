@@ -1,11 +1,19 @@
+import org.cyclonedx.Version
+import org.cyclonedx.gradle.CyclonedxDirectTask
+import org.cyclonedx.model.Component
+import org.gradle.api.file.RegularFile
+
 plugins {
     id(ThunderbirdPlugins.App.androidCompose)
+    alias(libs.plugins.cyclonedx.bom)
     alias(libs.plugins.dependency.guard)
     alias(libs.plugins.tb.app.badging)
     alias(libs.plugins.tb.app.versioning)
 }
 
 val testCoverageEnabled = hasProperty("testCoverageEnabled")
+val kemiVersionCode = 39040
+val kemiVersionName = "20.1"
 
 android {
     namespace = "com.fsck.k9"
@@ -14,8 +22,8 @@ android {
         applicationId = "com.fsck.k9"
         testApplicationId = "com.fsck.k9.tests"
 
-        versionCode = 39040
-        versionName = "20.1"
+        versionCode = kemiVersionCode
+        versionName = kemiVersionName
 
         buildConfigField("String", "CLIENT_INFO_APP_NAME", "\"KEMI Mail\"")
     }
@@ -182,6 +190,40 @@ dependencies {
 dependencyGuard {
     configuration("fossReleaseRuntimeClasspath")
     configuration("fullReleaseRuntimeClasspath")
+}
+
+fun CyclonedxDirectTask.configureKemiReleaseSbom(flavor: String) {
+    group = "reporting"
+    description = "Generates the KEMI $flavor release runtime CycloneDX SBOM."
+    includeConfigs = listOf("${flavor}ReleaseRuntimeClasspath")
+    skipConfigs = emptyList()
+    testConfigs = emptyList()
+    projectType = Component.Type.APPLICATION
+    schemaVersion = Version.VERSION_17
+    componentGroup = "app.k9mail"
+    componentName = "KEMI Mail ($flavor)"
+    componentVersion = kemiVersionName
+    includeBomSerialNumber = false
+    includeLicenseText = false
+    includeMetadataResolution = true
+    includeBuildEnvironment = false
+    includeBuildSystem = false
+    jsonOutput = layout.buildDirectory.file("reports/sbom/kemi-$flavor-release.cdx.json")
+    xmlOutput.convention(null as RegularFile?)
+}
+
+val cyclonedxFossReleaseBom = tasks.named<CyclonedxDirectTask>("cyclonedxDirectBom") {
+    configureKemiReleaseSbom("foss")
+}
+
+val cyclonedxFullReleaseBom = tasks.register<CyclonedxDirectTask>("cyclonedxFullReleaseBom") {
+    configureKemiReleaseSbom("full")
+}
+
+tasks.register("kemiReleaseSboms") {
+    group = "reporting"
+    description = "Generates both KEMI release runtime SBOMs."
+    dependsOn(cyclonedxFossReleaseBom, cyclonedxFullReleaseBom)
 }
 
 codeCoverage {

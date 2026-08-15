@@ -10,6 +10,8 @@ When to use
 - Before every Beta/Production release
 - After high‑risk feature merges
 
+KEMI Mail production candidates must also complete the [KEMI Regression Matrix](kemi-regression-matrix.md) and store results in the [KEMI Release Evidence Template](kemi-release-evidence-template.md).
+
 Test environments
 
 - Devices: At least one low-end and one mid/high-end device; 1 emulator

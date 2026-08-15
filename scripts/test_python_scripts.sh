@@ -55,6 +55,11 @@ python3 -m py_compile "$SCRIPT_DIR/ci/render-notes.py" && echo "  ✓ render-not
 python3 -m py_compile "$SCRIPT_DIR/ci/setup_release_automation" && echo "  ✓ setup_release_automation"
 python3 -m py_compile "$SCRIPT_DIR/ci/merges/merge_gradle.py" && echo "  ✓ merge_gradle.py"
 python3 -m py_compile "$SCRIPT_DIR/ci/contributor_list.py" && echo "  ✓ contributor_list.py"
+python3 -m py_compile "$SCRIPT_DIR/ci/validate_kemi_sbom.py" && echo "  ✓ validate_kemi_sbom.py"
+
+echo ""
+echo "Testing KEMI SBOM policy..."
+python3 -m unittest discover -s "$SCRIPT_DIR/ci/tests" -p 'test_*.py'
 
 echo ""
 echo "✓ All tests passed!"

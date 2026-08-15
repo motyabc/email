@@ -6,6 +6,8 @@ This checklist is for developers. It summarizes what you (as a contributor/featu
 
 For the full release-driver process (branch locks, announcements, publishing), see [Release → Release Process](../release/RELEASE.md).
 
+For KEMI Mail candidates, the [KEMI Security and Release Gates](kemi-security-release-gates.md), [KEMI Regression Matrix](kemi-regression-matrix.md), and [KEMI Release Evidence Template](kemi-release-evidence-template.md) are mandatory in addition to this checklist.
+
 ## Ongoing (between merges)
 
 Do these as part of regular development:
@@ -61,6 +63,10 @@ Goal: Changes on `beta` are safe for general availability.
   - Review crash/ANR reports and GitHub issues for changes affecting beta and release
   - Investigate regressions and propose fixes if needed
   - Ensure your changes have been tested on beta and address any issues found
+- KEMI supply-chain evidence (KEMI Mail candidates only)
+  - Confirm Dependency Guard and both release SBOM validations pass for the candidate commit
+  - Review SCA, SAST, CodeQL, and Scorecard evidence according to the KEMI security gate
+  - Complete the KEMI regression matrix and record release-owner and security-owner approval
 
 ## Optional: PR checklist snippet
 
