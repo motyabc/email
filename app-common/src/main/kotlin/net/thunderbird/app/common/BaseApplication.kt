@@ -58,7 +58,10 @@ abstract class BaseApplication : Application(), WorkManagerConfiguration.Provide
         Log.logger = logger
 
         super.attachBaseContext(base)
-        installExceptionHandler()
+        val originalHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler(
+            ExceptionHandler(originalHandler) { throwable -> crashReportRecorder.record(throwable) },
+        )
     }
 
     override fun onCreate() {
@@ -78,13 +81,6 @@ abstract class BaseApplication : Application(), WorkManagerConfiguration.Provide
     }
 
     abstract fun provideAppModule(): Module
-
-    private fun installExceptionHandler() {
-        val originalHandler = Thread.getDefaultUncaughtExceptionHandler()
-        Thread.setDefaultUncaughtExceptionHandler(
-            ExceptionHandler(originalHandler) { throwable -> crashReportRecorder.record(throwable) },
-        )
-    }
 
     private fun initializeAppLanguage() {
         appLanguageManager.init()
