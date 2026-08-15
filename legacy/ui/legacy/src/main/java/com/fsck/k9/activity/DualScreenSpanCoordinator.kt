@@ -88,7 +88,7 @@ internal class DualScreenSpanCoordinator(
     private fun reconcileDisplays() {
         if (!started) return
 
-        val secondaryDisplay = displaySelector.findEligibleSecondaryDisplay(activity.display?.displayId)
+        val secondaryDisplay = displaySelector.findEligibleSecondaryDisplay(activity.getDisplayIdCompat())
         val targetState = resolveTargetState(secondaryDisplay)
 
         if (!targetState.usesProjectedCanvas) {
@@ -325,6 +325,13 @@ internal class DualScreenSpanCoordinator(
                 logicalEvent.recycle()
             }
 
+            if (event.action == MotionEvent.ACTION_UP) performClick()
+
+            return true
+        }
+
+        override fun performClick(): Boolean {
+            super.performClick()
             return true
         }
 

@@ -252,7 +252,7 @@ open class MessageHomeActivity :
         initialDualScreenRuntimeState = DualScreenRuntimeState.resolve(
             savedMode = savedDualScreenMode,
             isEligibleSecondaryDisplayAvailable =
-            dualScreenDisplaySelector.findEligibleSecondaryDisplay(display?.displayId) != null,
+            dualScreenDisplaySelector.findEligibleSecondaryDisplay(getDisplayIdCompat()) != null,
         )
     }
 
