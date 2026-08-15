@@ -9,15 +9,22 @@ import com.fsck.k9.mail.ssl.TrustManagerFactory
 import com.fsck.k9.mail.ssl.TrustedSocketFactory
 import com.fsck.k9.mailstore.LocalStoreProvider
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import net.thunderbird.core.preference.storage.Storage
 import net.thunderbird.core.preference.storage.StorageEditor
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
+import org.koin.dsl.onClose
 
 val mainModule = module {
     includes(coreCommonAndroidModule)
-    single<CoroutineScope>(named("AppCoroutineScope")) { GlobalScope }
+    single<CoroutineScope>(named("AppCoroutineScope")) {
+        CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    }.onClose { coroutineScope ->
+        coroutineScope?.cancel()
+    }
     single {
         Preferences(
             storagePersister = get(),
