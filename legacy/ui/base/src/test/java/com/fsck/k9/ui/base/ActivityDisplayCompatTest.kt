@@ -1,4 +1,4 @@
-package com.fsck.k9.activity
+package com.fsck.k9.ui.base
 
 import android.app.Activity
 import android.os.Build

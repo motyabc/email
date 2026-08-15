@@ -17,6 +17,9 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.biometric)
     implementation(libs.kotlinx.coroutines.core)
+
+    testImplementation(libs.robolectric)
+    testImplementation(libs.kotlin.test)
 }
 
 android {

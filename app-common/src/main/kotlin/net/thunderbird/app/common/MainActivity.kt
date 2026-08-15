@@ -2,6 +2,7 @@ package net.thunderbird.app.common
 
 import android.os.Bundle
 import com.fsck.k9.ui.base.BaseActivity
+import com.fsck.k9.ui.base.DefaultDisplayActivityRelocator
 import kotlin.getValue
 import net.thunderbird.app.common.startup.StartupRouter
 import net.thunderbird.core.android.common.startup.DatabaseUpgradeInterceptor
@@ -14,6 +15,8 @@ class MainActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        if (DefaultDisplayActivityRelocator.relocateIfNeeded(this)) return
 
         if (databaseUpgradeInterceptor.checkAndHandleUpgrade(this, intent)) {
             finish()

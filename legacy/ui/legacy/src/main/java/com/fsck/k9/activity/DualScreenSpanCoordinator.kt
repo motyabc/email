@@ -19,6 +19,7 @@ import android.view.WindowManager
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat.Type.systemBars
 import androidx.core.view.WindowInsetsControllerCompat
+import com.fsck.k9.ui.base.getDisplayIdCompat
 import java.lang.ref.WeakReference
 import net.thunderbird.core.preference.DualScreenMode
 

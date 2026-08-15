@@ -120,6 +120,7 @@ import com.fsck.k9.message.SimpleMessageBuilder;
 import com.fsck.k9.message.SimpleMessageFormat;
 import com.fsck.k9.ui.R;
 import com.fsck.k9.ui.base.BaseActivity;
+import com.fsck.k9.ui.base.DefaultDisplayActivityRelocator;
 import com.fsck.k9.ui.compose.IntentData;
 import com.fsck.k9.ui.compose.IntentDataMapper;
 import com.fsck.k9.ui.compose.QuotedMessageMvpView;
@@ -303,6 +304,10 @@ public class MessageCompose extends BaseActivity implements OnClickListener,
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        if (DefaultDisplayActivityRelocator.relocateIfNeeded(this)) {
+            return;
+        }
 
         if (databaseUpgradeInterceptor.checkAndHandleUpgrade(this, getIntent())) {
             finish();

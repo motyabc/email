@@ -58,6 +58,8 @@ import com.fsck.k9.search.isUnifiedFolders
 import com.fsck.k9.ui.BuildConfig
 import com.fsck.k9.ui.R
 import com.fsck.k9.ui.base.BaseActivity
+import com.fsck.k9.ui.base.DefaultDisplayActivityRelocator
+import com.fsck.k9.ui.base.getDisplayIdCompat
 import com.fsck.k9.ui.managefolders.ManageFoldersActivity
 import com.fsck.k9.ui.messagelist.DefaultFolderProvider
 import com.fsck.k9.ui.messagelist.MessageListFragmentBridgeContract
@@ -183,6 +185,8 @@ open class MessageHomeActivity :
     @Suppress("ReturnCount")
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        if (DefaultDisplayActivityRelocator.relocateIfNeeded(this)) return
 
         if (databaseUpgradeInterceptor.checkAndHandleUpgrade(this, intent)) {
             finish()
@@ -397,6 +401,8 @@ open class MessageHomeActivity :
     @Suppress("ReturnCount")
     public override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+
+        if (DefaultDisplayActivityRelocator.relocateIfNeeded(this, intent)) return
 
         if (databaseUpgradeInterceptor.checkAndHandleUpgrade(this, intent)) {
             finish()
