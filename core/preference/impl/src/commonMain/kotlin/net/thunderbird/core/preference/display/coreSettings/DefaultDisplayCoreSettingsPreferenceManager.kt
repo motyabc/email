@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import net.thunderbird.core.logging.Logger
+import net.thunderbird.core.preference.DualScreenMode
 import net.thunderbird.core.preference.storage.Storage
 import net.thunderbird.core.preference.storage.StorageEditor
 import net.thunderbird.core.preference.storage.StoragePersister
@@ -64,7 +65,17 @@ class DefaultDisplayCoreSettingsPreferenceManager(
             KEY_SPLIT_VIEW_MODE,
             DISPLAY_SETTINGS_DEFAULT_SPLIT_VIEW_MODE,
         ),
+        dualScreenMode = loadDualScreenMode(),
     )
+
+    private fun loadDualScreenMode(): DualScreenMode {
+        val storedValue =
+            storage.getStringOrNull(KEY_DUAL_SCREEN_MODE) ?: return DISPLAY_SETTINGS_DEFAULT_DUAL_SCREEN_MODE
+        return DualScreenMode.entries.firstOrNull { mode -> mode.name == storedValue }
+            ?: DISPLAY_SETTINGS_DEFAULT_DUAL_SCREEN_MODE.also {
+                logger.warn(TAG) { "Invalid dual-screen mode; using the default mode" }
+            }
+    }
 
     private fun writeConfig(config: DisplayCoreSettings) {
         logger.debug(TAG) { "writeConfig() called with: config = $config" }
@@ -82,6 +93,7 @@ class DefaultDisplayCoreSettingsPreferenceManager(
                 )
                 storageEditor.putString(KEY_APP_LANGUAGE, config.appLanguage)
                 storageEditor.putEnum(KEY_SPLIT_VIEW_MODE, config.splitViewMode)
+                storageEditor.putEnum(KEY_DUAL_SCREEN_MODE, config.dualScreenMode)
                 storageEditor.commit().also { commited ->
                     logger.verbose(TAG) { "writeConfig: storageEditor.commit() resulted in: $commited" }
                 }

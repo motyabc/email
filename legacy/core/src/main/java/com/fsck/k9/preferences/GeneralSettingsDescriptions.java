@@ -39,6 +39,7 @@ import net.thunderbird.core.preference.BodyContentType;
 import net.thunderbird.core.preference.LockScreenNotificationVisibility;
 import net.thunderbird.core.preference.NotificationQuickDelete;
 import net.thunderbird.core.preference.SplitViewMode;
+import net.thunderbird.core.preference.DualScreenMode;
 import net.thunderbird.core.preference.SubTheme;
 import net.thunderbird.core.preference.display.coreSettings.DisplayCoreSettingsKt;
 import net.thunderbird.core.preference.display.visualSettings.message.list.MessageListDateTimeFormat;
@@ -231,6 +232,9 @@ class GeneralSettingsDescriptions {
         ));
         s.put("splitViewMode", Settings.versions(
             new V(23, new EnumSetting<>(SplitViewMode.class, SplitViewMode.NEVER))
+        ));
+        s.put("dualScreenMode", Settings.versions(
+            new V(111, new EnumSetting<>(DualScreenMode.class, DualScreenMode.IMMERSIVE))
         ));
         s.put("messageComposeTheme", Settings.versions(
             new V(24, new SubThemeSetting(DisplayCoreSettingsKt.getDISPLAY_SETTINGS_DEFAULT_MESSAGE_COMPOSE_THEME()))

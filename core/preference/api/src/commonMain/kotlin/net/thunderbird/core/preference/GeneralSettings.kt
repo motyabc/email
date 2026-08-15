@@ -66,6 +66,14 @@ enum class SplitViewMode {
 }
 
 /**
+ * Controls how the KEMI dual displays are used when the secondary display is available.
+ */
+enum class DualScreenMode {
+    IMMERSIVE,
+    SMART,
+}
+
+/**
  * Controls behaviour of delete button in notifications.
  */
 enum class NotificationQuickDelete {

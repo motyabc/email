@@ -6,6 +6,7 @@ const val KEY_FIXED_MESSAGE_VIEW_THEME = "fixedMessageViewTheme"
 const val KEY_MESSAGE_VIEW_THEME = "messageViewTheme"
 const val KEY_MESSAGE_COMPOSE_THEME = "messageComposeTheme"
 const val KEY_APP_LANGUAGE = "language"
+const val KEY_DUAL_SCREEN_MODE = "dualScreenMode"
 const val KEY_SPLIT_VIEW_MODE = "splitViewMode"
 const val KEY_THEME = "theme"
 
