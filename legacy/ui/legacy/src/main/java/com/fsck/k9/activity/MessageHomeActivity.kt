@@ -162,6 +162,7 @@ open class MessageHomeActivity :
     private var currentDualScreenRuntimeState = DualScreenRuntimeState.SINGLE_SCREEN
     private var dualScreenRecoverySnackbar: Snackbar? = null
     private lateinit var dualScreenDisplaySelector: DualScreenDisplaySelector
+    private var initialDualScreenDisplayTarget: DualScreenDisplayTarget? = null
     private var savedDualScreenMode = DualScreenMode.IMMERSIVE
     private var initialDualScreenRuntimeState = DualScreenRuntimeState.SINGLE_SCREEN
     private var account: LegacyAccountDto? = null
@@ -216,10 +217,10 @@ open class MessageHomeActivity :
                 }
             }
         }
-        initializeSmartAssistantPanel()
-
         val activityContent = findViewById<ViewGroup>(android.R.id.content)
         val authoritativeRootView = activityContent.getChildAt(0)
+        configureInitialDualScreenLayout(authoritativeRootView)
+        initializeSmartAssistantPanel()
         initializeDualScreenExperience(activityContent, authoritativeRootView)
 
         initializeActionBar()
@@ -261,10 +262,11 @@ open class MessageHomeActivity :
     private fun initializeDualScreenRuntime() {
         savedDualScreenMode = displayCoreSettingsPreferenceManager.getConfig().dualScreenMode
         dualScreenDisplaySelector = DualScreenDisplaySelector(getSystemService(DisplayManager::class.java))
+        initialDualScreenDisplayTarget =
+            dualScreenDisplaySelector.findEligibleSecondaryDisplay(getDisplayIdCompat())
         val resolvedRuntimeState = DualScreenRuntimeState.resolve(
             savedMode = savedDualScreenMode,
-            isEligibleSecondaryDisplayAvailable =
-            dualScreenDisplaySelector.findEligibleSecondaryDisplay(getDisplayIdCompat()) != null,
+            isEligibleSecondaryDisplayAvailable = initialDualScreenDisplayTarget != null,
         )
         initialDualScreenRuntimeState = if (dualScreenRecoveryViewModel.recoveryPending) {
             DualScreenRuntimeState.SINGLE_SCREEN
@@ -272,6 +274,15 @@ open class MessageHomeActivity :
             resolvedRuntimeState
         }
         currentDualScreenRuntimeState = initialDualScreenRuntimeState
+    }
+
+    private fun configureInitialDualScreenLayout(authoritativeRootView: View) {
+        if (!initialDualScreenRuntimeState.usesSmartWorkspace) return
+
+        SmartDualScreenLayoutConfigurator.apply(
+            rootView = authoritativeRootView,
+            deviceProfile = checkNotNull(initialDualScreenDisplayTarget).deviceProfile,
+        )
     }
 
     private fun initializeSmartAssistantPanel() {
@@ -321,6 +332,7 @@ open class MessageHomeActivity :
             sourceView = authoritativeRootView,
             dualScreenMode = savedDualScreenMode,
             preparedRuntimeState = initialDualScreenRuntimeState,
+            preparedDeviceProfile = initialDualScreenDisplayTarget?.deviceProfile,
             displaySelector = dualScreenDisplaySelector,
             initialRecoveryPending = dualScreenRecoveryViewModel.recoveryPending,
             onRuntimeStateChanged = { state ->

@@ -2,7 +2,6 @@ package com.fsck.k9.activity
 
 import android.app.Presentation
 import android.content.Context
-import android.content.pm.ActivityInfo
 import android.graphics.Canvas
 import android.hardware.display.DisplayManager
 import android.os.Bundle
@@ -11,7 +10,6 @@ import android.view.Display
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
-import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.view.Window
 import android.view.WindowManager
@@ -27,9 +25,9 @@ import net.thunderbird.core.preference.DualScreenMode
  * Projects one authoritative Activity view across the two KEMI displays.
  *
  * Immersive mode uses one continuous layout. Smart mode uses a dedicated two-zone layout with the message body in
- * the upper zone and the list workspace in the lower zone. In both cases Display 2 renders logical Y=0..1279, while
- * the Activity stays on Display 0 and renders logical Y=1280..2559. Both displays dispatch touches to the same UI
- * tree and business state.
+ * the upper zone and the list workspace in the lower zone. The selected [DualScreenDeviceProfile] defines the
+ * physical display whitelist, logical canvas, display IDs, orientation, scaling, and touch mapping. Both displays
+ * dispatch touches to the same UI tree and business state.
  */
 @Suppress("TooManyFunctions")
 internal class DualScreenSpanCoordinator(
@@ -37,10 +35,9 @@ internal class DualScreenSpanCoordinator(
     private val sourceView: View,
     private val dualScreenMode: DualScreenMode,
     private val preparedRuntimeState: DualScreenRuntimeState,
-    private val geometry: DualScreenSpanGeometry = DualScreenSpanGeometry(),
+    private val preparedDeviceProfile: DualScreenDeviceProfile?,
     private val displaySelector: DualScreenDisplaySelector = DualScreenDisplaySelector(
         displayManager = activity.getSystemService(DisplayManager::class.java),
-        geometry = geometry,
     ),
     initialRecoveryPending: Boolean = false,
     private val onRuntimeStateChanged: (DualScreenRuntimeState) -> Unit = {},
@@ -79,7 +76,7 @@ internal class DualScreenSpanCoordinator(
         displayManager.unregisterDisplayListener(this)
         applyProjectionDecision(
             decision = projectionLifecycle.onStop(),
-            secondaryDisplay = null,
+            secondaryTarget = null,
             targetState = DualScreenRuntimeState.SINGLE_SCREEN,
             allowSmartWorkspaceRecreation = false,
         )
@@ -94,15 +91,15 @@ internal class DualScreenSpanCoordinator(
     fun resumeAfterDisplayReconnect(): Boolean {
         if (!started) return false
 
-        val secondaryDisplay = findSecondaryDisplay()
-        val targetState = resolveTargetState(secondaryDisplay)
+        val secondaryTarget = findSecondaryDisplay()
+        val targetState = resolveTargetState(secondaryTarget)
         val decision = projectionLifecycle.onRecoveryAccepted(
-            isSecondaryDisplayAvailable = secondaryDisplay != null,
-            isWorkspacePrepared = preparedRuntimeState.canActivatePreparedWorkspace(targetState),
+            isSecondaryDisplayAvailable = secondaryTarget != null,
+            isWorkspacePrepared = canActivatePreparedWorkspace(targetState, secondaryTarget),
         )
         applyProjectionDecision(
             decision = decision,
-            secondaryDisplay = secondaryDisplay,
+            secondaryTarget = secondaryTarget,
             targetState = targetState,
             allowSmartWorkspaceRecreation = false,
         )
@@ -117,37 +114,39 @@ internal class DualScreenSpanCoordinator(
     override fun onDisplayChanged(displayId: Int) = reconcileDisplayTopology()
 
     private fun reconcileOnStart() {
-        val secondaryDisplay = findSecondaryDisplay()
-        val targetState = resolveTargetState(secondaryDisplay)
+        val secondaryTarget = findSecondaryDisplay()
+        val targetState = resolveTargetState(secondaryTarget)
         val decision = projectionLifecycle.onStart(
-            isSecondaryDisplayAvailable = secondaryDisplay != null,
-            isWorkspacePrepared = preparedRuntimeState.canActivatePreparedWorkspace(targetState),
+            isSecondaryDisplayAvailable = secondaryTarget != null,
+            isWorkspacePrepared = canActivatePreparedWorkspace(targetState, secondaryTarget),
             wasProjectionExpected = preparedRuntimeState.usesProjectedCanvas,
         )
 
-        applyProjectionDecision(decision, secondaryDisplay, targetState)
+        applyProjectionDecision(decision, secondaryTarget, targetState)
     }
 
     private fun reconcileDisplayTopology() {
         if (!started) return
 
-        val secondaryDisplay = findSecondaryDisplay()
-        val targetState = resolveTargetState(secondaryDisplay)
+        val secondaryTarget = findSecondaryDisplay()
+        val targetState = resolveTargetState(secondaryTarget)
         val currentPresentation = secondaryPresentation
-        val isCurrentProjectionReusable = currentPresentation?.let { presentation ->
-            presentation.display.displayId == secondaryDisplay?.displayId && presentation.isShowing
-        } == true
+        val isCurrentProjectionReusable = currentPresentation != null &&
+            secondaryTarget != null &&
+            currentPresentation.display.displayId == secondaryTarget.display.displayId &&
+            currentPresentation.deviceProfile == secondaryTarget.deviceProfile &&
+            currentPresentation.isShowing
         val decision = projectionLifecycle.onDisplayTopologyChanged(
-            isSecondaryDisplayAvailable = secondaryDisplay != null,
+            isSecondaryDisplayAvailable = secondaryTarget != null,
             isCurrentProjectionReusable = isCurrentProjectionReusable,
         )
 
-        applyProjectionDecision(decision, secondaryDisplay, targetState)
+        applyProjectionDecision(decision, secondaryTarget, targetState)
     }
 
     private fun applyProjectionDecision(
         decision: DualScreenProjectionDecision,
-        secondaryDisplay: Display?,
+        secondaryTarget: DualScreenDisplayTarget?,
         targetState: DualScreenRuntimeState,
         allowSmartWorkspaceRecreation: Boolean = true,
     ) {
@@ -157,8 +156,8 @@ internal class DualScreenSpanCoordinator(
         when (decision.action) {
             DualScreenProjectionAction.NONE -> secondaryPresentation?.requestFrame()
             DualScreenProjectionAction.ACTIVATE -> {
-                checkNotNull(secondaryDisplay)
-                activateProjection(secondaryDisplay, targetState)
+                checkNotNull(secondaryTarget)
+                activateProjection(secondaryTarget, targetState)
             }
 
             DualScreenProjectionAction.DEACTIVATE,
@@ -174,32 +173,44 @@ internal class DualScreenSpanCoordinator(
         }
     }
 
-    private fun findSecondaryDisplay(): Display? {
+    private fun findSecondaryDisplay(): DualScreenDisplayTarget? {
         return displaySelector.findEligibleSecondaryDisplay(activity.getDisplayIdCompat())
     }
 
-    private fun resolveTargetState(secondaryDisplay: Display?): DualScreenRuntimeState {
+    private fun resolveTargetState(secondaryTarget: DualScreenDisplayTarget?): DualScreenRuntimeState {
         return DualScreenRuntimeState.resolve(
             savedMode = dualScreenMode,
-            isEligibleSecondaryDisplayAvailable = secondaryDisplay != null,
+            isEligibleSecondaryDisplayAvailable = secondaryTarget != null,
         )
     }
 
-    private fun activateProjection(secondaryDisplay: Display, targetState: DualScreenRuntimeState) {
+    private fun canActivatePreparedWorkspace(
+        targetState: DualScreenRuntimeState,
+        secondaryTarget: DualScreenDisplayTarget?,
+    ): Boolean {
+        return preparedRuntimeState.canActivatePreparedWorkspace(targetState) &&
+            preparedDeviceProfile == secondaryTarget?.deviceProfile
+    }
+
+    private fun activateProjection(secondaryTarget: DualScreenDisplayTarget, targetState: DualScreenRuntimeState) {
         val currentPresentation = secondaryPresentation
-        if (currentPresentation?.display?.displayId == secondaryDisplay.displayId && currentPresentation.isShowing) {
+        if (
+            currentPresentation?.display?.displayId == secondaryTarget.display.displayId &&
+            currentPresentation.deviceProfile == secondaryTarget.deviceProfile &&
+            currentPresentation.isShowing
+        ) {
             updateRuntimeState(targetState)
             return
         }
 
         dismissSecondaryPresentation()
-        lockOrientation()
+        lockOrientation(secondaryTarget.deviceProfile)
 
         val candidate = SpanPresentation(
             context = activity,
-            display = secondaryDisplay,
+            display = secondaryTarget.display,
             sourceView = sourceView,
-            geometry = geometry,
+            deviceProfile = secondaryTarget.deviceProfile,
             handleBackPressed = { activity.onBackPressedDispatcher.onBackPressed() },
         )
         candidate.setOnDismissListener {
@@ -212,7 +223,7 @@ internal class DualScreenSpanCoordinator(
         try {
             candidate.show()
             secondaryPresentation = candidate
-            applySpanningLayout()
+            applySpanningLayout(secondaryTarget.deviceProfile)
             hideSystemBars(activity.window)
             candidate.requestFrame()
             updateRuntimeState(targetState)
@@ -224,14 +235,14 @@ internal class DualScreenSpanCoordinator(
     }
 
     private fun handleUnexpectedPresentationDismissal() {
-        val secondaryDisplay = findSecondaryDisplay()
+        val secondaryTarget = findSecondaryDisplay()
         val decision = projectionLifecycle.onPresentationDismissed(
-            isSecondaryDisplayAvailable = secondaryDisplay != null,
+            isSecondaryDisplayAvailable = secondaryTarget != null,
         )
         applyProjectionDecision(
             decision = decision,
-            secondaryDisplay = secondaryDisplay,
-            targetState = resolveTargetState(secondaryDisplay),
+            secondaryTarget = secondaryTarget,
+            targetState = resolveTargetState(secondaryTarget),
         )
     }
 
@@ -239,17 +250,17 @@ internal class DualScreenSpanCoordinator(
         val decision = projectionLifecycle.onPresentationDismissed(isSecondaryDisplayAvailable = false)
         applyProjectionDecision(
             decision = decision,
-            secondaryDisplay = null,
+            secondaryTarget = null,
             targetState = DualScreenRuntimeState.SINGLE_SCREEN,
         )
     }
 
-    private fun applySpanningLayout() {
+    private fun applySpanningLayout(deviceProfile: DualScreenDeviceProfile) {
         val layoutParams = sourceView.layoutParams ?: return
-        layoutParams.width = ViewGroup.LayoutParams.MATCH_PARENT
-        layoutParams.height = geometry.logicalHeight
+        layoutParams.width = deviceProfile.logicalViewportWidth
+        layoutParams.height = deviceProfile.logicalCanvasHeight
         sourceView.layoutParams = layoutParams
-        sourceView.translationY = geometry.primaryTranslationY
+        sourceView.translationY = deviceProfile.primaryTranslationY
         sourceView.requestLayout()
     }
 
@@ -283,11 +294,11 @@ internal class DualScreenSpanCoordinator(
         sourceView.requestLayout()
     }
 
-    private fun lockOrientation() {
+    private fun lockOrientation(deviceProfile: DualScreenDeviceProfile) {
         if (orientationLocked) return
 
         orientationLocked = true
-        activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        activity.requestedOrientation = deviceProfile.requestedOrientation
     }
 
     private fun restoreOrientation() {
@@ -316,7 +327,7 @@ internal class DualScreenSpanCoordinator(
         context: Context,
         display: Display,
         private val sourceView: View,
-        private val geometry: DualScreenSpanGeometry,
+        val deviceProfile: DualScreenDeviceProfile,
         private val handleBackPressed: () -> Unit,
     ) : Presentation(context, display) {
         private var secondaryViewport: DualScreenSecondaryViewport? = null
@@ -332,7 +343,7 @@ internal class DualScreenSpanCoordinator(
                 }
             }
 
-            secondaryViewport = DualScreenSecondaryViewport(context, sourceView, geometry).also(::setContentView)
+            secondaryViewport = DualScreenSecondaryViewport(context, sourceView, deviceProfile).also(::setContentView)
             setOnKeyListener { _, keyCode, event ->
                 if (keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP) {
                     handleBackPressed.invoke()
@@ -352,7 +363,7 @@ internal class DualScreenSpanCoordinator(
 internal class DualScreenSecondaryViewport(
     context: Context,
     sourceView: View,
-    private val geometry: DualScreenSpanGeometry,
+    private val deviceProfile: DualScreenDeviceProfile,
 ) : View(context) {
     private val sourceView = WeakReference(sourceView)
     private val bootstrapUntil = SystemClock.uptimeMillis() + BOOTSTRAP_FRAME_WINDOW_MILLIS
@@ -385,23 +396,42 @@ internal class DualScreenSecondaryViewport(
         frameScheduled = false
 
         val source = sourceView.get() ?: return
-        if (source.width == 0 || source.height < geometry.logicalHeight) {
+        if (
+            width == 0 ||
+            height == 0 ||
+            source.width < deviceProfile.logicalViewportWidth ||
+            source.height < deviceProfile.logicalCanvasHeight
+        ) {
             if (SystemClock.uptimeMillis() < bootstrapUntil) requestCoalescedFrame()
             return
         }
 
         drawingSource = true
+        val canvasSaveCount = canvas.save()
         try {
+            canvas.scale(
+                deviceProfile.presentationScaleX(width),
+                deviceProfile.presentationScaleY(height),
+            )
             source.draw(canvas)
         } finally {
+            canvas.restoreToCount(canvasSaveCount)
             drawingSource = false
         }
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        val source = sourceView.get() ?: return false
+        val source = sourceView.get()
+        if (source == null || width == 0 || height == 0) return false
+
+        val logicalPoint = deviceProfile.secondaryLogicalPoint(
+            viewportX = event.x,
+            viewportY = event.y,
+            viewportWidth = width,
+            viewportHeight = height,
+        )
         val logicalEvent = MotionEvent.obtain(event)
-        logicalEvent.setLocation(event.x, geometry.secondaryLogicalY(event.y))
+        logicalEvent.setLocation(logicalPoint.x, logicalPoint.y)
 
         try {
             source.dispatchTouchEvent(logicalEvent)

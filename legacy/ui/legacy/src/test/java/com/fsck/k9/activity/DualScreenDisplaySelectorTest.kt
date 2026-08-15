@@ -44,8 +44,10 @@ class DualScreenDisplaySelectorTest {
     @Test
     fun `eligible KEMI presentation display is selected`() {
         val displayId = addPresentationDisplay()
+        val target = selector.findEligibleSecondaryDisplay(Display.DEFAULT_DISPLAY)
 
-        assertThat(selector.findEligibleSecondaryDisplay(Display.DEFAULT_DISPLAY)?.displayId).isEqualTo(displayId)
+        assertThat(target?.display?.displayId).isEqualTo(displayId)
+        assertThat(target?.deviceProfile).isEqualTo(DualScreenDeviceProfiles.KEMI_GENERATION_1)
     }
 
     @Test
@@ -54,7 +56,29 @@ class DualScreenDisplaySelectorTest {
         val preferredDisplayId = addPresentationDisplay()
 
         assertThat(preferredDisplayId).isEqualTo(2)
-        assertThat(selector.findEligibleSecondaryDisplay(Display.DEFAULT_DISPLAY)?.displayId).isEqualTo(2)
+        assertThat(selector.findEligibleSecondaryDisplay(Display.DEFAULT_DISPLAY)?.display?.displayId).isEqualTo(2)
+    }
+
+    @Test
+    fun `a later hardware generation requires an explicit profile`() {
+        val laterProfile = DualScreenDeviceProfiles.KEMI_GENERATION_1.copy(
+            name = "KEMI generation 2 test",
+            physicalViewportWidth = 1280,
+            physicalViewportHeight = 720,
+            logicalViewportWidth = 1600,
+            logicalViewportHeight = 900,
+            preferredSecondaryDisplayId = 1,
+        )
+        val displayId = addPresentationDisplay(UNSUPPORTED_DISPLAY_QUALIFIERS)
+        val multiGenerationSelector = DualScreenDisplaySelector(
+            displayManager = displayManager,
+            supportedProfiles = listOf(DualScreenDeviceProfiles.KEMI_GENERATION_1, laterProfile),
+        )
+
+        val target = multiGenerationSelector.findEligibleSecondaryDisplay(Display.DEFAULT_DISPLAY)
+
+        assertThat(target?.display?.displayId).isEqualTo(displayId)
+        assertThat(target?.deviceProfile).isEqualTo(laterProfile)
     }
 
     private fun addPresentationDisplay(qualifiers: String = KEMI_DISPLAY_QUALIFIERS): Int {

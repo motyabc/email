@@ -3,11 +3,13 @@ package com.fsck.k9.activity
 import android.content.Context
 import android.graphics.drawable.ColorDrawable
 import android.view.ContextThemeWrapper
+import android.view.MotionEvent
 import android.view.View
 import androidx.test.core.app.ApplicationProvider
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNotEqualTo
+import assertk.assertions.isNotNull
 import assertk.assertions.isTrue
 import com.fsck.k9.ui.R
 import org.junit.Test
@@ -42,11 +44,36 @@ class DualScreenSecondaryViewportTest {
         assertThat(viewport.importantForAccessibility).isEqualTo(View.IMPORTANT_FOR_ACCESSIBILITY_YES)
     }
 
+    @Test
+    fun `viewport maps scaled touch coordinates into the logical upper viewport`() {
+        val context = themedContext(com.google.android.material.R.style.Theme_Material3_Light_NoActionBar)
+        val sourceView = View(context).apply { layout(0, 0, 1920, 2560) }
+        var forwardedEvent: MotionEvent? = null
+        sourceView.setOnTouchListener { _, event ->
+            forwardedEvent = MotionEvent.obtain(event)
+            true
+        }
+        val viewport = DualScreenSecondaryViewport(
+            context = context,
+            sourceView = sourceView,
+            deviceProfile = DualScreenDeviceProfiles.KEMI_GENERATION_1,
+        ).apply { layout(0, 0, 3840, 2560) }
+        val inputEvent = MotionEvent.obtain(0, 0, MotionEvent.ACTION_DOWN, 1920f, 1280f, 0)
+
+        viewport.onTouchEvent(inputEvent)
+
+        assertThat(forwardedEvent).isNotNull()
+        assertThat(forwardedEvent?.x).isEqualTo(960f)
+        assertThat(forwardedEvent?.y).isEqualTo(640f)
+        inputEvent.recycle()
+        forwardedEvent?.recycle()
+    }
+
     private fun createViewport(context: Context): DualScreenSecondaryViewport {
         return DualScreenSecondaryViewport(
             context = context,
             sourceView = View(context),
-            geometry = DualScreenSpanGeometry(),
+            deviceProfile = DualScreenDeviceProfiles.KEMI_GENERATION_1,
         )
     }
 

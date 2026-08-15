@@ -110,9 +110,8 @@
     <include
         layout="@layout/navigation_drawer_content"
         android:layout_width="wrap_content"
-        android:layout_height="1280px"
+        android:layout_height="match_parent"
         android:layout_gravity="start|bottom"
-        tools:ignore="PxUsage"
         />
 
 </androidx.drawerlayout.widget.DrawerLayout>

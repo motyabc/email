@@ -22,7 +22,7 @@ import org.robolectric.RobolectricTestRunner
 class SmartMessageListLayoutTest {
     @Test
     fun `smart workspace places message above lower list workspace`() {
-        val root = inflateSmartWorkspace()
+        val root = inflateSmartWorkspace(DualScreenDeviceProfiles.KEMI_GENERATION_1)
         val workspace = root.findViewById<LinearLayout>(R.id.smart_workspace)
 
         assertThat(workspace.getChildAt(0).id).isEqualTo(R.id.message_view_container)
@@ -35,25 +35,37 @@ class SmartMessageListLayoutTest {
 
     @Test
     fun `navigation drawer is constrained to physical lower viewport`() {
-        val root = inflateSmartWorkspace()
+        val deviceProfile = DualScreenDeviceProfiles.KEMI_GENERATION_1
+        val root = inflateSmartWorkspace(deviceProfile)
         val drawer = root.getChildAt(1) as ViewGroup
         val layoutParams = drawer.layoutParams as DrawerLayout.LayoutParams
 
-        assertThat(layoutParams.height).isEqualTo(LOWER_VIEWPORT_HEIGHT)
+        assertThat(layoutParams.height).isEqualTo(deviceProfile.logicalViewportHeight)
         assertThat(layoutParams.gravity and Gravity.BOTTOM == Gravity.BOTTOM).isTrue()
     }
 
-    private fun inflateSmartWorkspace(): DrawerLayout {
+    @Test
+    fun `navigation drawer height follows an explicit later device profile`() {
+        val laterProfile = DualScreenDeviceProfiles.KEMI_GENERATION_1.copy(
+            name = "KEMI generation 2 test",
+            logicalViewportHeight = 1440,
+        )
+        val root = inflateSmartWorkspace(laterProfile)
+
+        val drawer = root.getChildAt(1) as ViewGroup
+
+        assertThat(drawer.layoutParams.height).isEqualTo(1440)
+    }
+
+    private fun inflateSmartWorkspace(deviceProfile: DualScreenDeviceProfile): DrawerLayout {
         val applicationContext = ApplicationProvider.getApplicationContext<Context>()
         val themedContext = ContextThemeWrapper(
             applicationContext,
             com.google.android.material.R.style.Theme_Material3_Light_NoActionBar,
         )
-        return LayoutInflater.from(themedContext)
-            .inflate(R.layout.smart_message_list, null, false) as DrawerLayout
-    }
-
-    private companion object {
-        const val LOWER_VIEWPORT_HEIGHT = 1280
+        return (
+            LayoutInflater.from(themedContext)
+                .inflate(R.layout.smart_message_list, null, false) as DrawerLayout
+            ).also { rootView -> SmartDualScreenLayoutConfigurator.apply(rootView, deviceProfile) }
     }
 }
