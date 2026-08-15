@@ -51,7 +51,6 @@ import com.fsck.k9.activity.compose.MessageActions
 import com.fsck.k9.activity.smartassistant.NoOpSmartAssistantPanelHost
 import com.fsck.k9.activity.smartassistant.SmartAssistantAccountReference
 import com.fsck.k9.activity.smartassistant.SmartAssistantContext
-import com.fsck.k9.activity.smartassistant.SmartAssistantFolderReference
 import com.fsck.k9.activity.smartassistant.SmartAssistantPanelCoordinator
 import com.fsck.k9.activity.smartassistant.SmartAssistantScene
 import com.fsck.k9.activity.smartassistant.toSmartAssistantDraftReference
@@ -240,14 +239,7 @@ open class MessageHomeActivity :
         initializeLayout()
         initializeFragments()
         displayViews()
-        updateSmartAssistantContext(
-            scene = if (messageViewContainerFragment != null) {
-                SmartAssistantScene.MESSAGE_READING
-            } else {
-                SmartAssistantScene.MESSAGE_LIST
-            },
-            messageReference = messageReference,
-        )
+        initializeSmartAssistantContext()
         initializeFunding()
         initializeFoldableObserver()
 
@@ -257,6 +249,22 @@ open class MessageHomeActivity :
             }
         }
         onBackPressedDispatcher.addCallback(this, backPressedCallback)
+    }
+
+    private fun initializeSmartAssistantContext() {
+        val activeMessage = SmartMessageListContextResolver.activeMessage(
+            hasMessageView = messageViewContainerFragment != null,
+            fragmentActiveMessage = messageListFragment?.activeMessage,
+            launchMessage = messageReference,
+        )
+        updateSmartAssistantContext(
+            scene = if (activeMessage != null) {
+                SmartAssistantScene.MESSAGE_READING
+            } else {
+                SmartAssistantScene.MESSAGE_LIST
+            },
+            messageReference = activeMessage,
+        )
     }
 
     private fun initializeDualScreenRuntime() {
@@ -302,9 +310,11 @@ open class MessageHomeActivity :
             SmartAssistantContext(
                 scene = scene,
                 account = accountUuid?.let(::SmartAssistantAccountReference),
-                folder = messageReference?.let { reference ->
-                    SmartAssistantFolderReference(reference.accountUuid, reference.folderId)
-                },
+                folder = SmartMessageListContextResolver.folderReference(
+                    activeMessage = messageReference,
+                    currentAccountUuid = account?.uuid,
+                    currentFolderIds = search?.folderIds.orEmpty(),
+                ),
                 message = messageReference?.takeIf { scene == SmartAssistantScene.MESSAGE_READING }
                     ?.toSmartAssistantMessageReference(),
                 draft = messageReference?.takeIf { scene == SmartAssistantScene.DRAFT_COMPOSING }
@@ -601,7 +611,9 @@ open class MessageHomeActivity :
     private fun initializeLayout() {
         progressBar = findViewById(R.id.message_list_progress)
         messageViewPlaceHolder = if (initialDualScreenRuntimeState.usesSmartWorkspace) {
-            PlaceholderFragment.newInstance(R.string.dual_screen_smart_empty_message)
+            PlaceholderFragment.newInstance(
+                SmartMessageListContextResolver.emptyMessage(search?.isManualSearch == true),
+            )
         } else {
             PlaceholderFragment()
         }
@@ -1521,6 +1533,7 @@ open class MessageHomeActivity :
         val messageListFragment = checkNotNull(messageListFragment)
 
         messageListFragment.setActiveMessage(messageReference)
+        updateSmartAssistantContext(SmartAssistantScene.MESSAGE_READING, messageReference)
     }
 
     override fun performNavigationAfterMessageRemoval() {
@@ -1673,9 +1686,8 @@ open class MessageHomeActivity :
                 account = null
             }
         } else {
-            if (account == null && search.accountUuids.size == 1) {
-                account = accountManager.getAccount(search.accountUuids.elementAt(0))
-            }
+            account = SmartMessageListContextResolver.explicitAccountUuid(search.accountUuids)
+                ?.let(accountManager::getAccount)
             singleFolderMode = folderIds.size == 1
         }
 

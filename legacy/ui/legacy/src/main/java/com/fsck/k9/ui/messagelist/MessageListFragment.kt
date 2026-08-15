@@ -268,7 +268,8 @@ class MessageListFragment :
     private var activeMessages: List<MessageReference>? = null
     private var showingThreadedList = false
     private var isThreadDisplay = false
-    private var activeMessage: MessageReference? = null
+    override var activeMessage: MessageReference? = null
+        private set
     private var rememberedSelected: Set<Long>? = null
     private var lastMessageClick = 0L
 

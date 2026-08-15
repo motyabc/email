@@ -19,6 +19,7 @@ interface MessageListFragmentBridgeContract {
     val legacyViewModel: MessageListViewModel
     var isActive: Boolean
     val fragmentActivity: FragmentActivity?
+    val activeMessage: MessageReference?
 
     // used on both MessageListFragment and MessageListHandler
     fun updateFooterText(text: String?)
