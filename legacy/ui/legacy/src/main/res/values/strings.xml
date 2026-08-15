@@ -1159,4 +1159,14 @@ You can keep this message and use it as a backup for your secret key. If you wan
     <string name="dual_screen_recovery_available">The second screen is available again. Restore the saved dual-screen mode?</string>
     <string name="dual_screen_recovery_action">Restore</string>
     <string name="dual_screen_secondary_viewport_description">Upper screen mirror. Use the lower screen for accessible mail controls.</string>
+    <string name="dual_screen_compose_reference_title">Writing reference</string>
+    <string name="dual_screen_compose_reference_description">Upper-screen writing reference. Edit attachments and send only from the lower screen.</string>
+    <string name="dual_screen_compose_reference_compose_hint">Compose on the lower screen. This upper area stays available as a writing reference.</string>
+    <string name="dual_screen_compose_reference_draft_hint">Continue editing the draft on the lower screen. No second draft is created above.</string>
+    <string name="dual_screen_compose_reference_loading_hint">Loading the original message for reference. Write and send from the lower screen.</string>
+    <string name="dual_screen_compose_reference_source_hint">Original message for reference only. Write, manage attachments, and send from the lower screen.</string>
+    <string name="dual_screen_compose_reference_unavailable">The original message couldn’t be loaded. The lower-screen editor is still available.</string>
+    <string name="dual_screen_compose_reference_no_subject">(No subject)</string>
+    <string name="dual_screen_compose_reference_no_body">The original message has no readable text body.</string>
+    <string name="dual_screen_compose_reference_truncated">The reference is very long. Only the first 100,000 characters are shown.</string>
 </resources>

@@ -39,6 +39,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.View.OnFocusChangeListener;
+import android.view.ViewGroup;
 import android.view.ViewStub;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -136,6 +137,7 @@ import net.thunderbird.core.featureflag.FeatureFlagProvider;
 import net.thunderbird.core.featureflag.compat.FeatureFlagProviderCompat;
 import net.thunderbird.core.outcome.OutcomeKt;
 import net.thunderbird.core.preference.GeneralSettingsManager;
+import net.thunderbird.core.preference.display.coreSettings.DisplayCoreSettingsPreferenceManager;
 import net.thunderbird.core.ui.theme.manager.ThemeManager;
 import net.thunderbird.feature.mail.message.composer.dialog.SentFolderNotFoundConfirmationDialogFragmentFactory;
 import net.thunderbird.feature.notification.api.command.outcome.CommandExecutionFailed;
@@ -227,6 +229,8 @@ public class MessageCompose extends BaseActivity implements OnClickListener,
     private final MessagingController messagingController = DI.get(MessagingController.class);
     private final Preferences preferences = DI.get(Preferences.class);
     private final GeneralSettingsManager generalSettingsManager = DI.get(GeneralSettingsManager.class);
+    private final DisplayCoreSettingsPreferenceManager displayCoreSettingsPreferenceManager =
+            DI.get(DisplayCoreSettingsPreferenceManager.class);
 
     private final IntentDataMapper indentDataMapper = DI.get(IntentDataMapper.class);
 
@@ -300,6 +304,7 @@ public class MessageCompose extends BaseActivity implements OnClickListener,
 
     private boolean sendMessageHasBeenTriggered = false;
     private boolean ignoreSentFolderNotAssigned = false;
+    private DualScreenComposeController dualScreenComposeController;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -314,7 +319,9 @@ public class MessageCompose extends BaseActivity implements OnClickListener,
             return;
         }
 
-        setLayout(R.layout.message_compose);
+        dualScreenComposeController = DualScreenComposeController.create(
+                this, displayCoreSettingsPreferenceManager.getConfig().getDualScreenMode());
+        setLayout(dualScreenComposeController.getLayoutResource());
         ViewStub contentContainer = findViewById(R.id.message_compose_content);
 
         sizeFormatter = new SizeFormatter(getResources());
@@ -350,6 +357,9 @@ public class MessageCompose extends BaseActivity implements OnClickListener,
             finish();
             return;
         }
+
+        ViewGroup activityContent = findViewById(android.R.id.content);
+        dualScreenComposeController.attach(activityContent, activityContent.getChildAt(0));
 
         initializeInAppNotificationFragment();
 
@@ -492,6 +502,8 @@ public class MessageCompose extends BaseActivity implements OnClickListener,
             }
         }
 
+        dualScreenComposeController.showInitialReference(this.action);
+
         if (identity == null) {
             identity = account.getIdentity(0);
         }
@@ -616,6 +628,31 @@ public class MessageCompose extends BaseActivity implements OnClickListener,
         if (accountUuid != null) {
             account = preferences.getAccount(accountUuid);
         }
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (dualScreenComposeController != null) {
+            dualScreenComposeController.start();
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        if (dualScreenComposeController != null) {
+            dualScreenComposeController.stop();
+        }
+        super.onStop();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (dualScreenComposeController != null) {
+            dualScreenComposeController.destroy();
+            dualScreenComposeController = null;
+        }
+        super.onDestroy();
     }
 
     @Override
@@ -1787,6 +1824,7 @@ public class MessageCompose extends BaseActivity implements OnClickListener,
 
     public void loadLocalMessageForDisplay(MessageViewInfo messageViewInfo, Action action) {
         currentMessageViewInfo = messageViewInfo;
+        dualScreenComposeController.showSourceReference(messageViewInfo, action);
 
         // We check to see if we've previously processed the source message since this
         // could be called when switching from HTML to text replies. If that happens, we
@@ -1842,6 +1880,7 @@ public class MessageCompose extends BaseActivity implements OnClickListener,
         @Override
         public void onMessageViewInfoLoadFailed(MessageViewInfo messageViewInfo) {
             internalMessageHandler.sendEmptyMessage(MSG_PROGRESS_OFF);
+            dualScreenComposeController.showReferenceUnavailable(action);
             Toast.makeText(MessageCompose.this, R.string.status_invalid_id_error, Toast.LENGTH_LONG).show();
         }
 

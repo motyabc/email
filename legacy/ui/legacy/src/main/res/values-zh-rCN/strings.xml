@@ -946,4 +946,14 @@
     <string name="dual_screen_recovery_available">双屏已重新连接，是否恢复已保存的双屏模式？</string>
     <string name="dual_screen_recovery_action">恢复</string>
     <string name="dual_screen_secondary_viewport_description">上屏邮件镜像。请使用下屏的无障碍邮件控件。</string>
+    <string name="dual_screen_compose_reference_title">写作参考</string>
+    <string name="dual_screen_compose_reference_description">上屏写作参考。请只在下屏编辑、管理附件和发送。</string>
+    <string name="dual_screen_compose_reference_compose_hint">请在下屏撰写新邮件；上屏保留为写作参考区。</string>
+    <string name="dual_screen_compose_reference_draft_hint">请在下屏继续编辑草稿；上屏不会创建第二份草稿。</string>
+    <string name="dual_screen_compose_reference_loading_hint">正在加载原邮件供参考；请在下屏撰写和发送。</string>
+    <string name="dual_screen_compose_reference_source_hint">原邮件仅供参考；请在下屏撰写、管理附件和发送。</string>
+    <string name="dual_screen_compose_reference_unavailable">无法加载原邮件；下屏编辑器仍可正常使用。</string>
+    <string name="dual_screen_compose_reference_no_subject">（无主题）</string>
+    <string name="dual_screen_compose_reference_no_body">原邮件没有可读取的文本正文。</string>
+    <string name="dual_screen_compose_reference_truncated">参考内容较长，仅显示前 100,000 个字符。</string>
 </resources>

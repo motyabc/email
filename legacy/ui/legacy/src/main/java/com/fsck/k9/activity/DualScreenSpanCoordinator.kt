@@ -13,6 +13,7 @@ import android.view.View
 import android.view.ViewTreeObserver
 import android.view.Window
 import android.view.WindowManager
+import androidx.activity.ComponentActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat.Type.systemBars
 import androidx.core.view.WindowInsetsControllerCompat
@@ -24,14 +25,13 @@ import net.thunderbird.core.preference.DualScreenMode
 /**
  * Projects one authoritative Activity view across the two KEMI displays.
  *
- * Immersive mode uses one continuous layout. Smart mode uses a dedicated two-zone layout with the message body in
- * the upper zone and the list workspace in the lower zone. The selected [DualScreenDeviceProfile] defines the
- * physical display whitelist, logical canvas, display IDs, orientation, scaling, and touch mapping. Both displays
- * dispatch touches to the same UI tree and business state.
+ * Immersive mode uses one continuous layout. Smart mode uses an Activity-specific two-zone layout. The selected
+ * [DualScreenDeviceProfile] defines the physical display whitelist, logical canvas, display IDs, orientation,
+ * scaling, and touch mapping. Both displays dispatch touches to the same UI tree and business state.
  */
 @Suppress("TooManyFunctions")
 internal class DualScreenSpanCoordinator(
-    private val activity: MessageHomeActivity,
+    private val activity: ComponentActivity,
     private val sourceView: View,
     private val dualScreenMode: DualScreenMode,
     private val preparedRuntimeState: DualScreenRuntimeState,
@@ -39,6 +39,8 @@ internal class DualScreenSpanCoordinator(
     private val displaySelector: DualScreenDisplaySelector = DualScreenDisplaySelector(
         displayManager = activity.getSystemService(DisplayManager::class.java),
     ),
+    private val secondaryViewportContentDescription: CharSequence =
+        activity.getText(R.string.dual_screen_secondary_viewport_description),
     initialRecoveryPending: Boolean = false,
     private val onRuntimeStateChanged: (DualScreenRuntimeState) -> Unit = {},
     private val onRecoveryPendingChanged: (Boolean) -> Unit = {},
@@ -211,6 +213,7 @@ internal class DualScreenSpanCoordinator(
             display = secondaryTarget.display,
             sourceView = sourceView,
             deviceProfile = secondaryTarget.deviceProfile,
+            viewportContentDescription = secondaryViewportContentDescription,
             handleBackPressed = { activity.onBackPressedDispatcher.onBackPressed() },
         )
         candidate.setOnDismissListener {
@@ -328,6 +331,7 @@ internal class DualScreenSpanCoordinator(
         display: Display,
         private val sourceView: View,
         val deviceProfile: DualScreenDeviceProfile,
+        private val viewportContentDescription: CharSequence,
         private val handleBackPressed: () -> Unit,
     ) : Presentation(context, display) {
         private var secondaryViewport: DualScreenSecondaryViewport? = null
@@ -343,7 +347,12 @@ internal class DualScreenSpanCoordinator(
                 }
             }
 
-            secondaryViewport = DualScreenSecondaryViewport(context, sourceView, deviceProfile).also(::setContentView)
+            secondaryViewport = DualScreenSecondaryViewport(
+                context = context,
+                sourceView = sourceView,
+                deviceProfile = deviceProfile,
+                viewportContentDescription = viewportContentDescription,
+            ).also(::setContentView)
             setOnKeyListener { _, keyCode, event ->
                 if (keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP) {
                     handleBackPressed.invoke()
@@ -364,6 +373,7 @@ internal class DualScreenSecondaryViewport(
     context: Context,
     sourceView: View,
     private val deviceProfile: DualScreenDeviceProfile,
+    viewportContentDescription: CharSequence = context.getText(R.string.dual_screen_secondary_viewport_description),
 ) : View(context) {
     private val sourceView = WeakReference(sourceView)
     private val bootstrapUntil = SystemClock.uptimeMillis() + BOOTSTRAP_FRAME_WINDOW_MILLIS
@@ -376,7 +386,7 @@ internal class DualScreenSecondaryViewport(
 
     init {
         setBackgroundColor(context.resolveDualScreenViewportBackgroundColor())
-        contentDescription = context.getString(R.string.dual_screen_secondary_viewport_description)
+        contentDescription = viewportContentDescription
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
         isClickable = true
         isFocusableInTouchMode = true

@@ -45,6 +45,19 @@ class DualScreenSecondaryViewportTest {
     }
 
     @Test
+    fun `viewport accepts an activity-specific accessibility explanation`() {
+        val context = themedContext(com.google.android.material.R.style.Theme_Material3_Light_NoActionBar)
+        val viewport = DualScreenSecondaryViewport(
+            context = context,
+            sourceView = View(context),
+            deviceProfile = DualScreenDeviceProfiles.KEMI_GENERATION_1,
+            viewportContentDescription = "Read-only compose reference",
+        )
+
+        assertThat(viewport.contentDescription).isEqualTo("Read-only compose reference")
+    }
+
+    @Test
     fun `viewport maps scaled touch coordinates into the logical upper viewport`() {
         val context = themedContext(com.google.android.material.R.style.Theme_Material3_Light_NoActionBar)
         val sourceView = View(context).apply { layout(0, 0, 1920, 2560) }
