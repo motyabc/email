@@ -202,7 +202,7 @@
     <!--Title of the setting to specify the density of the message list-->
     <string name="general_settings_ui_density_default">Bawaan</string>
     <string name="global_settings_privacy_hide_useragent">Sembunyikan klien surat</string>
-    <string name="global_settings_privacy_hide_useragent_detail">Hapus Agen Pengguna K-9 dari tajuk surat</string>
+    <string name="global_settings_privacy_hide_useragent_detail">Hapus Agen Pengguna dari tajuk surat</string>
     <string name="global_settings_privacy_hide_timezone">Sembunyikan zona waktu</string>
     <string name="global_settings_privacy_hide_timezone_detail">Gunakan UTC, bukan zona waktu lokal di tajuk surat dan tajuk balasan</string>
     <string name="global_settings_notification_quick_delete_title">Tampilkan tombol \'Hapus\'</string>

@@ -216,7 +216,7 @@
     <!--Title of the setting to specify the density of the message list-->
     <string name="general_settings_ui_density_default">സ്ഥിരസ്ഥിതി</string>
     <string name="global_settings_privacy_hide_useragent">മെയിൽ ക്ലയന്റ് മറയ്‌ക്കുക</string>
-    <string name="global_settings_privacy_hide_useragent_detail">മെയിൽ തലക്കെട്ടുകളിൽ നിന്ന് കെ-9 യൂസർ-ഏജന്റിനെ നീക്കം ചെയ്യുക</string>
+    <string name="global_settings_privacy_hide_useragent_detail">മെയിൽ തലക്കെട്ടുകളിൽ നിന്ന് യൂസർ-ഏജന്റിനെ നീക്കം ചെയ്യുക</string>
     <string name="global_settings_privacy_hide_timezone">സമയ മേഖല മറയ്ക്കൂ</string>
     <string name="global_settings_privacy_hide_timezone_detail">മെയിൽ‌ തലക്കെട്ടുകളിലും മറുപടി ശീർ‌ഷകത്തിലും പ്രാദേശിക സമയമേഖലയ്‌ക്ക് പകരം യു‌ടി‌സി ഉപയോഗിക്കുക, </string>
     <string name="global_settings_notification_quick_delete_title">\'ഇല്ലാതാക്കുക\' ബട്ടൺ കാണിക്കുക</string>

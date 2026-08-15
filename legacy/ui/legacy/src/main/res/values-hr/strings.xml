@@ -196,7 +196,7 @@
     <!--Title of the setting to specify the density of the message list-->
     <string name="general_settings_ui_density_default">Zadano</string>
     <string name="global_settings_privacy_hide_useragent">Sakrij klijent e-pošte</string>
-    <string name="global_settings_privacy_hide_useragent_detail">Makni K-9 Korisničkog agenta iz zaglavlja pošte</string>
+    <string name="global_settings_privacy_hide_useragent_detail">Makni Korisničkog agenta iz zaglavlja pošte</string>
     <string name="global_settings_privacy_hide_timezone">Sakrij vremensku zonu</string>
     <string name="global_settings_privacy_hide_timezone_detail">Koristi UTC umjesto lokalne vremenske zone u zaglavlju mail-a i zaglavlju odgovora</string>
     <string name="global_settings_notification_quick_delete_title">Prikaži gumb \'Obriši\'</string>

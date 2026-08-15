@@ -238,7 +238,7 @@
     <string name="general_settings_ui_density_default">Noklusējuma</string>
     <string name="general_settings_ui_density_relaxed">Brīvāks</string>
     <string name="global_settings_privacy_hide_useragent">Paslēpt pasta programmu</string>
-    <string name="global_settings_privacy_hide_useragent_detail">K-9 lietotāj-aģentu ziņas galvenē nenorādīt</string>
+    <string name="global_settings_privacy_hide_useragent_detail">Lietotāj-aģentu ziņas galvenē nenorādīt</string>
     <string name="global_settings_privacy_hide_timezone">Laika zonu nerādīt</string>
     <string name="global_settings_privacy_hide_timezone_detail">Izmantot UTC laika zonu ziņas galvenē un atbildes galvenē</string>
     <string name="global_settings_notification_quick_delete_title">Rādīt pogu \'Dzēst\'</string>

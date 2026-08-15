@@ -214,7 +214,7 @@
     <!--Title of the setting to specify the density of the message list-->
     <string name="general_settings_ui_density_default">Predefinido</string>
     <string name="global_settings_privacy_hide_useragent">Ocultar cliente de correo</string>
-    <string name="global_settings_privacy_hide_useragent_detail">Quitar K-9 User-Agent dos cabezallos do correo</string>
+    <string name="global_settings_privacy_hide_useragent_detail">Quitar User-Agent dos cabezallos do correo</string>
     <string name="global_settings_privacy_hide_timezone">Ocultar zona horaria</string>
     <string name="global_settings_privacy_hide_timezone_detail">Utilizar UTC no lugar da hora local nos cabezallos do correo e as respostas</string>
     <string name="global_settings_notification_quick_delete_title">Mostar botón \'Eliminar\'</string>

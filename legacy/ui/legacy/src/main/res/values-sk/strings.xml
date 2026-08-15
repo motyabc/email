@@ -205,7 +205,7 @@
     <!--Title of the setting to specify the density of the message list-->
     <string name="general_settings_ui_density_default">Predvolené</string>
     <string name="global_settings_privacy_hide_useragent">Skryť e-mail klienta</string>
-    <string name="global_settings_privacy_hide_useragent_detail">Odstrániť používateľského agenta K-9 z hlavičiek správ</string>
+    <string name="global_settings_privacy_hide_useragent_detail">Odstrániť používateľského agenta z hlavičiek správ</string>
     <string name="global_settings_privacy_hide_timezone">Skryť časové pásmo</string>
     <string name="global_settings_privacy_hide_timezone_detail">Použiť UTC ako časové pásmo v hlavičkách správ</string>
     <string name="global_settings_notification_quick_delete_title">Zobraziť tlačidlo \'Vymazať\'</string>

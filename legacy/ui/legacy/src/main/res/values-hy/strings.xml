@@ -165,7 +165,7 @@
     <!--Name of the swipe action to move a message to another folder-->
     <string name="general_settings_swipe_action_move">Տեղափոխել</string>
     <!--Title of the setting to specify the density of the message list-->
-    <string name="global_settings_privacy_hide_useragent_detail">Հեռացնել Կ֊9 User-Agent նամակի խորագրերից</string>
+    <string name="global_settings_privacy_hide_useragent_detail">Հեռացնել User-Agent նամակի խորագրերից</string>
     <string name="global_settings_notification_quick_delete_title">Ցուցադրել «Հեռացնել» կոճակը</string>
     <string name="global_settings_notification_quick_delete_never">Երբեք</string>
     <string name="global_settings_notification_quick_delete_when_single_msg">Մի նամակի ծանուցման համար</string>

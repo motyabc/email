@@ -562,7 +562,7 @@
     <string name="general_settings_swipe_action_toggle_star">הוספת/הסרת כוכב</string>
     <string name="general_settings_ui_density_compact">קומפקטית</string>
     <string name="general_settings_ui_density_relaxed">נוחה</string>
-    <string name="global_settings_privacy_hide_useragent_detail">הסר סוכן־משתמש של K-9 מכותרות הדואר</string>
+    <string name="global_settings_privacy_hide_useragent_detail">הסר סוכן־משתמש מכותרות הדואר</string>
     <string name="quiet_time_notification_description">השבת לחלוטין התראות בזמן שקט</string>
     <string name="account_settings_ignore_chat_messages_summary">הסתר התראות של הודעות השייכות לצ\'אט דוא\"ל</string>
     <string name="account_settings_mark_message_as_read_on_view_label">סמן כנקרא כשנפתח</string>

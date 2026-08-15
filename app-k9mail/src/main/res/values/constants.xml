@@ -6,6 +6,4 @@
     <string name="message_header_mua" translatable="false">KEMI Mail for Android</string>
     <string name="app_authors_url" translatable="false">https://github.com/motyabc/email/graphs/contributors</string>
     <string name="app_source_url" translatable="false">https://github.com/motyabc/email</string>
-    <string name="thunderbird_website_domain" translatable="false">www.thunderbird.net</string>
-    <string name="thunderbird_website_url" translatable="false">https://www.thunderbird.net</string>
 </resources>

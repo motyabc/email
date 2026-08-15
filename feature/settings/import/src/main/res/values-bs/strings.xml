@@ -18,7 +18,7 @@
     <string name="settings_import_outgoing_server_password_hint">Lozinka odlaznog servera</string>
     <string name="settings_import_use_same_password_for_outgoing_server">Koristi istu loziku za odlazni server</string>
     <string name="settings_import_server_name_format">Naziv servera: <xliff:g id="hostname">%s</xliff:g></string>
-    <string name="settings_import_oauth_description">Kako bi koristili ovaj mejl račun kroz K-9 Mail, morate se prijaviti i dodijeliti dozvolu aplikaciji da pristupi vašim mejlovima.</string>
+    <string name="settings_import_oauth_description">Kako bi koristili ovaj mejl račun, morate se prijaviti i dodijeliti dozvolu aplikaciji da pristupi vašim mejlovima.</string>
     <string name="settings_import_oauth_sign_in">Prijavite se</string>
     <string name="settings_import_oauth_sign_in_with_google">Prijavite se pomoću Google-a</string>
     <string name="settings_import_oauth_error_oauth_flow_canceled">Autorizacija otkazana</string>

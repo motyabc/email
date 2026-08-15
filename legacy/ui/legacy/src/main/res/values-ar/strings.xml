@@ -242,7 +242,7 @@
     <string name="general_settings_ui_density_default">الإفتراضي</string>
     <string name="general_settings_ui_density_relaxed">استرخاء </string>
     <string name="global_settings_privacy_hide_useragent">إخفاء عميل البريد</string>
-    <string name="global_settings_privacy_hide_useragent_detail">احذف مُعرف بريد كية-9 من ترويسات الرسالة</string>
+    <string name="global_settings_privacy_hide_useragent_detail">احذف مُعرف المستخدم من ترويسات الرسالة</string>
     <string name="global_settings_privacy_hide_timezone">احذف التوقيت</string>
     <string name="global_settings_privacy_hide_timezone_detail">استخدم التوقيت العالمي المنسق (UTC) بدلاً من المنطقة الزمنية المحلية في رؤوس البريد ورأس الرد </string>
     <string name="global_settings_notification_quick_delete_title">إظهار زر ’الحذف‘</string>

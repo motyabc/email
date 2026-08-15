@@ -233,7 +233,7 @@
     <string name="general_settings_ui_density_default">Standard</string>
     <string name="general_settings_ui_density_relaxed">Afslappet</string>
     <string name="global_settings_privacy_hide_useragent">Skjul mail klient</string>
-    <string name="global_settings_privacy_hide_useragent_detail">Fjern K-9 Bruger-Agent fra mail headers</string>
+    <string name="global_settings_privacy_hide_useragent_detail">Fjern User-Agent fra mail headers</string>
     <string name="global_settings_privacy_hide_timezone">Skjul tidszone</string>
     <string name="global_settings_privacy_hide_timezone_detail">Brug UTC som tidszone i mail headers og svar header</string>
     <string name="global_settings_notification_quick_delete_title">Vis \'Slet\' knap</string>

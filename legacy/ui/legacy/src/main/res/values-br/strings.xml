@@ -193,7 +193,7 @@
     <!--Title of the setting to specify the density of the message list-->
     <string name="general_settings_ui_density_default">Dre ziouer</string>
     <string name="global_settings_privacy_hide_useragent">Kuzhat an arval postel</string>
-    <string name="global_settings_privacy_hide_useragent_detail">Dilemel User-agent K-9 eus talbennoù ar postel</string>
+    <string name="global_settings_privacy_hide_useragent_detail">Dilemel User-agent eus talbennoù ar postel</string>
     <string name="global_settings_privacy_hide_timezone">Kuzhat ar gwerzhid-eur</string>
     <string name="global_settings_privacy_hide_timezone_detail">Arverañ UTC e plas ar gwerzhid-eur lec’hel e talbennoù ar postel hag ar respont</string>
     <string name="global_settings_notification_quick_delete_title">Diskouez an afell ’Dilemel’</string>
