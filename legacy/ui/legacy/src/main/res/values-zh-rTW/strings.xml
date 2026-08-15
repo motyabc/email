@@ -904,4 +904,5 @@
     <string name="dual_screen_mode_button_description">雙螢幕模式，目前為%1$s</string>
     <string name="dual_screen_recovery_available">雙螢幕已重新連線，是否恢復已儲存的雙螢幕模式？</string>
     <string name="dual_screen_recovery_action">恢復</string>
+    <string name="dual_screen_secondary_viewport_description">上屏郵件鏡像。請使用下屏的無障礙郵件控制項。</string>
 </resources>

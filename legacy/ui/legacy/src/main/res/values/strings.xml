@@ -1158,4 +1158,5 @@ You can keep this message and use it as a backup for your secret key. If you wan
     <string name="dual_screen_mode_button_description">Dual-screen mode, currently %1$s</string>
     <string name="dual_screen_recovery_available">The second screen is available again. Restore the saved dual-screen mode?</string>
     <string name="dual_screen_recovery_action">Restore</string>
+    <string name="dual_screen_secondary_viewport_description">Upper screen mirror. Use the lower screen for accessible mail controls.</string>
 </resources>

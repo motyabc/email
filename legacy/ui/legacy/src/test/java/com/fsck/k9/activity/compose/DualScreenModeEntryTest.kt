@@ -1,12 +1,16 @@
 package com.fsck.k9.activity.compose
 
 import android.app.Application
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.Density
 import assertk.assertThat
 import assertk.assertions.containsExactly
 import net.thunderbird.core.preference.DualScreenMode
@@ -37,6 +41,8 @@ class DualScreenModeEntryTest {
         setContent(visible = true, currentMode = DualScreenMode.IMMERSIVE)
 
         composeTestRule.onNodeWithText("Immersive mode").assertIsDisplayed()
+        composeTestRule.onNodeWithTag(DUAL_SCREEN_MODE_BUTTON_TEST_TAG)
+            .assertContentDescriptionEquals("Dual-screen mode, currently Immersive mode")
         composeTestRule.onNodeWithTag(DUAL_SCREEN_MODE_BUTTON_TEST_TAG).performClick()
 
         composeTestRule.onNodeWithTag(DUAL_SCREEN_MODE_DIALOG_TEST_TAG).assertIsDisplayed()
@@ -54,19 +60,50 @@ class DualScreenModeEntryTest {
         composeTestRule.onNodeWithTag(dualScreenModeOptionTestTag(DualScreenMode.SMART)).performClick()
 
         assertThat(selectedModes).containsExactly(DualScreenMode.SMART)
+        composeTestRule.onNodeWithTag(DUAL_SCREEN_MODE_DIALOG_TEST_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    @Config(qualifiers = "zh-rCN")
+    fun `entry and dialog expose simplified Chinese labels`() {
+        setContent(visible = true, currentMode = DualScreenMode.IMMERSIVE)
+
+        composeTestRule.onNodeWithText("沉浸模式").assertIsDisplayed()
+        composeTestRule.onNodeWithTag(DUAL_SCREEN_MODE_BUTTON_TEST_TAG)
+            .assertContentDescriptionEquals("双屏模式，当前为沉浸模式")
+        composeTestRule.onNodeWithTag(DUAL_SCREEN_MODE_BUTTON_TEST_TAG).performClick()
+
+        composeTestRule.onNodeWithText("智慧模式").assertIsDisplayed()
+        composeTestRule.onNodeWithText("上屏阅读邮件，下屏便捷处理").assertIsDisplayed()
+    }
+
+    @Test
+    fun `dialog remains usable with two hundred percent font scale`() {
+        setContent(visible = true, fontScale = 2f)
+        composeTestRule.onNodeWithTag(DUAL_SCREEN_MODE_BUTTON_TEST_TAG).performClick()
+
+        composeTestRule.onNodeWithTag(DUAL_SCREEN_MODE_DIALOG_TEST_TAG).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(dualScreenModeOptionTestTag(DualScreenMode.IMMERSIVE)).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(dualScreenModeOptionTestTag(DualScreenMode.SMART)).assertIsDisplayed()
     }
 
     private fun setContent(
         visible: Boolean,
         currentMode: DualScreenMode = DualScreenMode.IMMERSIVE,
+        fontScale: Float = 1f,
     ) {
         composeTestRule.setContent {
-            K9MailTheme2 {
-                DualScreenModeEntry(
-                    visible = visible,
-                    currentMode = currentMode,
-                    onModeSelected = { mode -> selectedModes.add(mode) },
-                )
+            val currentDensity = LocalDensity.current
+            CompositionLocalProvider(
+                LocalDensity provides Density(currentDensity.density, fontScale),
+            ) {
+                K9MailTheme2 {
+                    DualScreenModeEntry(
+                        visible = visible,
+                        currentMode = currentMode,
+                        onModeSelected = { mode -> selectedModes.add(mode) },
+                    )
+                }
             }
         }
     }

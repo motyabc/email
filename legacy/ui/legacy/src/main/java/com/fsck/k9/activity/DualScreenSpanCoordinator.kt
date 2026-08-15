@@ -4,7 +4,6 @@ import android.app.Presentation
 import android.content.Context
 import android.content.pm.ActivityInfo
 import android.graphics.Canvas
-import android.graphics.Color
 import android.hardware.display.DisplayManager
 import android.os.Bundle
 import android.os.SystemClock
@@ -19,6 +18,7 @@ import android.view.WindowManager
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat.Type.systemBars
 import androidx.core.view.WindowInsetsControllerCompat
+import com.fsck.k9.ui.R
 import com.fsck.k9.ui.base.getDisplayIdCompat
 import java.lang.ref.WeakReference
 import net.thunderbird.core.preference.DualScreenMode
@@ -319,7 +319,7 @@ internal class DualScreenSpanCoordinator(
         private val geometry: DualScreenSpanGeometry,
         private val handleBackPressed: () -> Unit,
     ) : Presentation(context, display) {
-        private var secondaryViewport: SecondaryViewport? = null
+        private var secondaryViewport: DualScreenSecondaryViewport? = null
 
         override fun onCreate(savedInstanceState: Bundle?) {
             super.onCreate(savedInstanceState)
@@ -332,7 +332,7 @@ internal class DualScreenSpanCoordinator(
                 }
             }
 
-            secondaryViewport = SecondaryViewport(context, sourceView, geometry).also(::setContentView)
+            secondaryViewport = DualScreenSecondaryViewport(context, sourceView, geometry).also(::setContentView)
             setOnKeyListener { _, keyCode, event ->
                 if (keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP) {
                     handleBackPressed.invoke()
@@ -347,81 +347,92 @@ internal class DualScreenSpanCoordinator(
             secondaryViewport?.requestCoalescedFrame()
         }
     }
+}
 
-    private class SecondaryViewport(
-        context: Context,
-        sourceView: View,
-        private val geometry: DualScreenSpanGeometry,
-    ) : View(context) {
-        private val sourceView = WeakReference(sourceView)
-        private val bootstrapUntil = SystemClock.uptimeMillis() + BOOTSTRAP_FRAME_WINDOW_MILLIS
-        private val sourceDrawListener = ViewTreeObserver.OnDrawListener {
-            if (!drawingSource) requestCoalescedFrame()
+internal class DualScreenSecondaryViewport(
+    context: Context,
+    sourceView: View,
+    private val geometry: DualScreenSpanGeometry,
+) : View(context) {
+    private val sourceView = WeakReference(sourceView)
+    private val bootstrapUntil = SystemClock.uptimeMillis() + BOOTSTRAP_FRAME_WINDOW_MILLIS
+    private val sourceDrawListener = ViewTreeObserver.OnDrawListener {
+        if (!drawingSource) requestCoalescedFrame()
+    }
+
+    private var drawingSource = false
+    private var frameScheduled = false
+
+    init {
+        setBackgroundColor(context.resolveDualScreenViewportBackgroundColor())
+        contentDescription = context.getString(R.string.dual_screen_secondary_viewport_description)
+        importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
+        isClickable = true
+        isFocusableInTouchMode = true
+        sourceView.getViewTreeObserver().addOnDrawListener(sourceDrawListener)
+        requestCoalescedFrame()
+    }
+
+    fun requestCoalescedFrame() {
+        if (frameScheduled) return
+
+        frameScheduled = true
+        postInvalidateOnAnimation()
+    }
+
+    override fun onDraw(canvas: Canvas) {
+        super.onDraw(canvas)
+        frameScheduled = false
+
+        val source = sourceView.get() ?: return
+        if (source.width == 0 || source.height < geometry.logicalHeight) {
+            if (SystemClock.uptimeMillis() < bootstrapUntil) requestCoalescedFrame()
+            return
         }
 
-        private var drawingSource = false
-        private var frameScheduled = false
+        drawingSource = true
+        try {
+            source.draw(canvas)
+        } finally {
+            drawingSource = false
+        }
+    }
 
-        init {
-            setBackgroundColor(Color.WHITE)
-            isClickable = true
-            isFocusableInTouchMode = true
-            sourceView.getViewTreeObserver().addOnDrawListener(sourceDrawListener)
-            requestCoalescedFrame()
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        val source = sourceView.get() ?: return false
+        val logicalEvent = MotionEvent.obtain(event)
+        logicalEvent.setLocation(event.x, geometry.secondaryLogicalY(event.y))
+
+        try {
+            source.dispatchTouchEvent(logicalEvent)
+        } finally {
+            logicalEvent.recycle()
         }
 
-        fun requestCoalescedFrame() {
-            if (frameScheduled) return
+        if (event.action == MotionEvent.ACTION_UP) performClick()
 
-            frameScheduled = true
-            postInvalidateOnAnimation()
+        return true
+    }
+
+    override fun performClick(): Boolean {
+        super.performClick()
+        return true
+    }
+
+    override fun onDetachedFromWindow() {
+        val source = sourceView.get()
+        if (source != null && source.viewTreeObserver.isAlive) {
+            source.viewTreeObserver.removeOnDrawListener(sourceDrawListener)
         }
+        super.onDetachedFromWindow()
+    }
 
-        override fun onDraw(canvas: Canvas) {
-            super.onDraw(canvas)
-            frameScheduled = false
-
-            val source = sourceView.get() ?: return
-            if (source.width == 0 || source.height < geometry.logicalHeight) {
-                if (SystemClock.uptimeMillis() < bootstrapUntil) requestCoalescedFrame()
-                return
-            }
-
-            drawingSource = true
-            try {
-                source.draw(canvas)
-            } finally {
-                drawingSource = false
-            }
-        }
-
-        override fun onTouchEvent(event: MotionEvent): Boolean {
-            val source = sourceView.get() ?: return false
-            val logicalEvent = MotionEvent.obtain(event)
-            logicalEvent.setLocation(event.x, geometry.secondaryLogicalY(event.y))
-
-            try {
-                source.dispatchTouchEvent(logicalEvent)
-            } finally {
-                logicalEvent.recycle()
-            }
-
-            if (event.action == MotionEvent.ACTION_UP) performClick()
-
-            return true
-        }
-
-        override fun performClick(): Boolean {
-            super.performClick()
-            return true
-        }
-
-        override fun onDetachedFromWindow() {
-            val source = sourceView.get()
-            if (source != null && source.viewTreeObserver.isAlive) {
-                source.viewTreeObserver.removeOnDrawListener(sourceDrawListener)
-            }
-            super.onDetachedFromWindow()
+    private fun Context.resolveDualScreenViewportBackgroundColor(): Int {
+        val attributes = obtainStyledAttributes(intArrayOf(android.R.attr.colorBackground))
+        return try {
+            attributes.getColor(0, android.graphics.Color.WHITE)
+        } finally {
+            attributes.recycle()
         }
     }
 

@@ -945,4 +945,5 @@
     <string name="dual_screen_mode_button_description">双屏模式，当前为%1$s</string>
     <string name="dual_screen_recovery_available">双屏已重新连接，是否恢复已保存的双屏模式？</string>
     <string name="dual_screen_recovery_action">恢复</string>
+    <string name="dual_screen_secondary_viewport_description">上屏邮件镜像。请使用下屏的无障碍邮件控件。</string>
 </resources>

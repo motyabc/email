@@ -228,6 +228,7 @@ open class MessageHomeActivity :
         if (!decodeExtras(intent)) {
             return
         }
+        restoreRetainedState(savedInstanceState)
 
         if (isDrawerEnabled) {
             configureDrawer()
@@ -360,6 +361,7 @@ open class MessageHomeActivity :
         onModeSelected: (DualScreenMode) -> Unit,
     ) {
         val modeEntry = ComposeView(this).apply {
+            id = R.id.dual_screen_mode_entry
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 featureThemeProvider.WithTheme {
@@ -859,15 +861,16 @@ open class MessageHomeActivity :
         super.onSaveInstanceState(outState)
 
         outState.putSerializable(STATE_DISPLAY_MODE, displayMode)
-        outState.putBoolean(STATE_MESSAGE_VIEW_ONLY, messageViewOnly)
-        outState.putBoolean(STATE_MESSAGE_LIST_WAS_DISPLAYED, messageListWasDisplayed)
+        MessageHomeRetainedState(
+            messageViewOnly = messageViewOnly,
+            messageListWasDisplayed = messageListWasDisplayed,
+        ).writeTo(outState)
     }
 
-    public override fun onRestoreInstanceState(savedInstanceState: Bundle) {
-        super.onRestoreInstanceState(savedInstanceState)
-
-        messageViewOnly = savedInstanceState.getBoolean(STATE_MESSAGE_VIEW_ONLY)
-        messageListWasDisplayed = savedInstanceState.getBoolean(STATE_MESSAGE_LIST_WAS_DISPLAYED)
+    private fun restoreRetainedState(savedInstanceState: Bundle?) {
+        val retainedState = MessageHomeRetainedState.restore(savedInstanceState) ?: return
+        messageViewOnly = retainedState.messageViewOnly
+        messageListWasDisplayed = retainedState.messageListWasDisplayed
     }
 
     private fun initializeActionBar() {
@@ -1752,9 +1755,6 @@ open class MessageHomeActivity :
         private const val EXTRA_SEARCH_FOLDER = "com.fsck.k9.search_folder"
 
         private const val STATE_DISPLAY_MODE = "displayMode"
-        private const val STATE_MESSAGE_VIEW_ONLY = "messageViewOnly"
-        private const val STATE_MESSAGE_LIST_WAS_DISPLAYED = "messageListWasDisplayed"
-
         private const val FIRST_FRAGMENT_TRANSACTION = "first"
         private const val FRAGMENT_TAG_MESSAGE_VIEW_CONTAINER = "MessageViewContainerFragment"
         private const val FRAGMENT_TAG_PLACEHOLDER = "MessageViewPlaceholder"

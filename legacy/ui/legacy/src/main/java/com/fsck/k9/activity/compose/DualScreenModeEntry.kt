@@ -86,7 +86,10 @@ private fun DualScreenModeDialog(
             DualScreenMode.entries.forEach { mode ->
                 RadioButton(
                     selected = mode == currentMode,
-                    onClick = { onModeSelected(mode) },
+                    onClick = {
+                        onDismissRequest()
+                        onModeSelected(mode)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag(dualScreenModeOptionTestTag(mode)),
