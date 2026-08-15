@@ -52,11 +52,7 @@ import com.fsck.k9.activity.compose.DualScreenModeEntry
 import com.fsck.k9.activity.compose.DualScreenModeEntryCallbacks
 import com.fsck.k9.activity.compose.DualScreenModeEntryState
 import com.fsck.k9.activity.compose.MessageActions
-import com.fsck.k9.activity.smartassistant.NoOpSmartAssistantPanelHost
-import com.fsck.k9.activity.smartassistant.SmartAssistantAccountReference
-import com.fsck.k9.activity.smartassistant.SmartAssistantContext
 import com.fsck.k9.activity.smartassistant.SmartAssistantPanelCoordinator
-import com.fsck.k9.activity.smartassistant.SmartAssistantScene
 import com.fsck.k9.activity.smartassistant.toSmartAssistantDraftReference
 import com.fsck.k9.activity.smartassistant.toSmartAssistantMessageReference
 import com.fsck.k9.controller.MessagingController
@@ -110,6 +106,10 @@ import net.thunderbird.feature.search.legacy.api.MessageSearchField
 import net.thunderbird.feature.search.legacy.api.SearchAttribute
 import net.thunderbird.feature.search.legacy.api.SearchCondition
 import net.thunderbird.feature.search.legacy.serialization.LocalMessageSearchSerializer
+import net.thunderbird.feature.smartassistant.SmartAssistantAccountReference
+import net.thunderbird.feature.smartassistant.SmartAssistantContext
+import net.thunderbird.feature.smartassistant.SmartAssistantPanelHost
+import net.thunderbird.feature.smartassistant.SmartAssistantScene
 import org.koin.android.ext.android.inject
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -152,6 +152,7 @@ open class MessageHomeActivity :
     private val legacyAccountDataMapper: LegacyAccountDataMapper by inject()
     private val databaseUpgradeInterceptor: DatabaseUpgradeInterceptor by inject()
     private val featureThemeProvider: FeatureThemeProvider by inject()
+    private val smartAssistantPanelHost: SmartAssistantPanelHost by inject()
 
     private val foldableStateObserver: FoldableStateObserver by inject { parametersOf(this) }
     private val dualScreenRecoveryViewModel: DualScreenRecoveryViewModel by viewModels()
@@ -317,7 +318,7 @@ open class MessageHomeActivity :
         val container = findViewById<ViewGroup>(R.id.smart_assistant_panel_host) ?: return
         smartAssistantPanelCoordinator = SmartAssistantPanelCoordinator(
             container = container,
-            panelHost = NoOpSmartAssistantPanelHost,
+            panelHost = smartAssistantPanelHost,
         )
     }
 

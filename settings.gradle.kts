@@ -144,6 +144,11 @@ include(
 )
 
 include(
+    ":feature:smartassistant:api",
+    ":feature:smartassistant:internal",
+)
+
+include(
     ":feature:telemetry:api",
     ":feature:telemetry:noop",
     ":feature:telemetry:glean",

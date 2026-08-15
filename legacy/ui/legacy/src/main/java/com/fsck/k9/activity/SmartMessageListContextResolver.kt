@@ -2,8 +2,8 @@ package com.fsck.k9.activity
 
 import androidx.annotation.StringRes
 import app.k9mail.legacy.message.controller.MessageReference
-import com.fsck.k9.activity.smartassistant.SmartAssistantFolderReference
 import com.fsck.k9.ui.R
+import net.thunderbird.feature.smartassistant.SmartAssistantFolderReference
 
 /**
  * Resolves display-only context from the authoritative list and reader fragments.

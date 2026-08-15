@@ -3,6 +3,8 @@ package com.fsck.k9.activity.smartassistant
 import android.view.ViewGroup
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
+import net.thunderbird.feature.smartassistant.SmartAssistantContext
+import net.thunderbird.feature.smartassistant.SmartAssistantPanelHost
 
 internal class SmartAssistantPanelCoordinator(
     private val container: ViewGroup,

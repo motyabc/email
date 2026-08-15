@@ -4,9 +4,9 @@ import app.k9mail.legacy.message.controller.MessageReference
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isNull
-import com.fsck.k9.activity.smartassistant.SmartAssistantFolderReference
 import com.fsck.k9.ui.R
 import kotlin.test.Test
+import net.thunderbird.feature.smartassistant.SmartAssistantFolderReference
 
 class SmartMessageListContextResolverTest {
     @Test

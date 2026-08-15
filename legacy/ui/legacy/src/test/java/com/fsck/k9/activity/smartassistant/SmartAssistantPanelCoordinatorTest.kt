@@ -10,6 +10,10 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isTrue
 import kotlin.test.Test
+import net.thunderbird.feature.smartassistant.SmartAssistantAccountReference
+import net.thunderbird.feature.smartassistant.SmartAssistantContext
+import net.thunderbird.feature.smartassistant.SmartAssistantPanelHost
+import net.thunderbird.feature.smartassistant.SmartAssistantScene
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
@@ -19,7 +23,7 @@ class SmartAssistantPanelCoordinatorTest {
     fun `no-op host keeps panel hidden and does not request context`() {
         val container = createContainerWithChild()
         var contextRequested = false
-        val coordinator = SmartAssistantPanelCoordinator(container, NoOpSmartAssistantPanelHost)
+        val coordinator = SmartAssistantPanelCoordinator(container, UnavailablePanelHost)
 
         coordinator.updateContext {
             contextRequested = true
@@ -81,5 +85,15 @@ class SmartAssistantPanelCoordinatorTest {
             detached = true
             attachedContainer = null
         }
+    }
+
+    private object UnavailablePanelHost : SmartAssistantPanelHost {
+        override val isAvailable: Boolean = false
+
+        override fun attach(container: ViewGroup) = Unit
+
+        override fun updateContext(context: SmartAssistantContext) = Unit
+
+        override fun detach() = Unit
     }
 }

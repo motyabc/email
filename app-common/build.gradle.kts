@@ -48,6 +48,8 @@ dependencies {
     implementation(projects.feature.migration.provider)
     implementation(projects.feature.notification.api)
     implementation(projects.feature.notification.impl)
+    implementation(projects.feature.smartassistant.api)
+    implementation(projects.feature.smartassistant.internal)
     implementation(projects.feature.widget.messageList)
 
     implementation(projects.feature.mail.message.export.api)
@@ -69,6 +71,7 @@ dependencies {
     testImplementation(projects.core.testing)
     testImplementation(projects.core.android.testing)
     testImplementation(projects.core.logging.testing)
+    testImplementation(libs.koin.test)
 }
 
 codeCoverage {

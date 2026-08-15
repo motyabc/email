@@ -4,6 +4,12 @@ import app.k9mail.legacy.message.controller.MessageReference
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import kotlin.test.Test
+import net.thunderbird.feature.smartassistant.SmartAssistantAccountReference
+import net.thunderbird.feature.smartassistant.SmartAssistantContext
+import net.thunderbird.feature.smartassistant.SmartAssistantDraftReference
+import net.thunderbird.feature.smartassistant.SmartAssistantFolderReference
+import net.thunderbird.feature.smartassistant.SmartAssistantMessageReference
+import net.thunderbird.feature.smartassistant.SmartAssistantScene
 
 class SmartAssistantContextTest {
     @Test
