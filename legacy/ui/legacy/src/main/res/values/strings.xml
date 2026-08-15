@@ -1156,4 +1156,6 @@ You can keep this message and use it as a backup for your secret key. If you wan
     <string name="dual_screen_smart_empty_message">Select a message from the lower screen</string>
     <string name="dual_screen_mode_close">Close</string>
     <string name="dual_screen_mode_button_description">Dual-screen mode, currently %1$s</string>
+    <string name="dual_screen_recovery_available">The second screen is available again. Restore the saved dual-screen mode?</string>
+    <string name="dual_screen_recovery_action">Restore</string>
 </resources>

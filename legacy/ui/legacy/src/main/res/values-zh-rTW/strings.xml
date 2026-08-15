@@ -902,4 +902,6 @@
     <string name="dual_screen_smart_empty_message">請從下螢幕選擇一封郵件</string>
     <string name="dual_screen_mode_close">關閉</string>
     <string name="dual_screen_mode_button_description">雙螢幕模式，目前為%1$s</string>
+    <string name="dual_screen_recovery_available">雙螢幕已重新連線，是否恢復已儲存的雙螢幕模式？</string>
+    <string name="dual_screen_recovery_action">恢復</string>
 </resources>

@@ -16,6 +16,7 @@ import android.view.animation.AnimationUtils
 import android.widget.FrameLayout
 import android.widget.ProgressBar
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.viewModels
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.view.ActionMode
 import androidx.compose.runtime.getValue
@@ -31,7 +32,9 @@ import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
 import androidx.fragment.app.commit
 import androidx.fragment.app.commitNow
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import app.k9mail.core.android.common.compat.BundleCompat
 import app.k9mail.core.android.common.contact.CachingRepository
 import app.k9mail.core.android.common.contact.ContactRepository
@@ -71,6 +74,7 @@ import com.fsck.k9.ui.messageview.PlaceholderFragment
 import com.fsck.k9.ui.settings.SettingsActivity
 import com.fsck.k9.view.ViewSwitcher
 import com.fsck.k9.view.ViewSwitcher.OnSwitchCompleteListener
+import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textview.MaterialTextView
 import kotlinx.coroutines.launch
 import net.thunderbird.core.android.account.LegacyAccount
@@ -141,6 +145,7 @@ open class MessageHomeActivity :
     private val featureThemeProvider: FeatureThemeProvider by inject()
 
     private val foldableStateObserver: FoldableStateObserver by inject { parametersOf(this) }
+    private val dualScreenRecoveryViewModel: DualScreenRecoveryViewModel by viewModels()
 
     private lateinit var actionBar: ActionBar
 
@@ -154,6 +159,8 @@ open class MessageHomeActivity :
     private var dualScreenSpanCoordinator: DualScreenSpanCoordinator? = null
     private var smartAssistantPanelCoordinator: SmartAssistantPanelCoordinator? = null
     private var isDualScreenModeEntryVisible by mutableStateOf(false)
+    private var currentDualScreenRuntimeState = DualScreenRuntimeState.SINGLE_SCREEN
+    private var dualScreenRecoverySnackbar: Snackbar? = null
     private lateinit var dualScreenDisplaySelector: DualScreenDisplaySelector
     private var savedDualScreenMode = DualScreenMode.IMMERSIVE
     private var initialDualScreenRuntimeState = DualScreenRuntimeState.SINGLE_SCREEN
@@ -253,11 +260,17 @@ open class MessageHomeActivity :
     private fun initializeDualScreenRuntime() {
         savedDualScreenMode = displayCoreSettingsPreferenceManager.getConfig().dualScreenMode
         dualScreenDisplaySelector = DualScreenDisplaySelector(getSystemService(DisplayManager::class.java))
-        initialDualScreenRuntimeState = DualScreenRuntimeState.resolve(
+        val resolvedRuntimeState = DualScreenRuntimeState.resolve(
             savedMode = savedDualScreenMode,
             isEligibleSecondaryDisplayAvailable =
             dualScreenDisplaySelector.findEligibleSecondaryDisplay(getDisplayIdCompat()) != null,
         )
+        initialDualScreenRuntimeState = if (dualScreenRecoveryViewModel.recoveryPending) {
+            DualScreenRuntimeState.SINGLE_SCREEN
+        } else {
+            resolvedRuntimeState
+        }
+        currentDualScreenRuntimeState = initialDualScreenRuntimeState
     }
 
     private fun initializeSmartAssistantPanel() {
@@ -308,11 +321,37 @@ open class MessageHomeActivity :
             dualScreenMode = savedDualScreenMode,
             preparedRuntimeState = initialDualScreenRuntimeState,
             displaySelector = dualScreenDisplaySelector,
+            initialRecoveryPending = dualScreenRecoveryViewModel.recoveryPending,
             onRuntimeStateChanged = { state ->
+                currentDualScreenRuntimeState = state
                 isDualScreenModeEntryVisible = state.isDualScreenAvailable
+            },
+            onRecoveryPendingChanged = { recoveryPending ->
+                dualScreenRecoveryViewModel.recoveryPending = recoveryPending
+            },
+            onRecoveryAvailabilityChanged = { recoveryAvailable ->
+                updateDualScreenRecoveryPrompt(activityContent, recoveryAvailable)
             },
             onSmartWorkspaceLost = ::recreate,
         )
+    }
+
+    private fun updateDualScreenRecoveryPrompt(activityContent: View, recoveryAvailable: Boolean) {
+        if (!recoveryAvailable) {
+            dualScreenRecoverySnackbar?.dismiss()
+            dualScreenRecoverySnackbar = null
+            return
+        }
+        if (dualScreenRecoverySnackbar?.isShown == true) return
+
+        dualScreenRecoverySnackbar = Snackbar.make(
+            activityContent,
+            R.string.dual_screen_recovery_available,
+            Snackbar.LENGTH_INDEFINITE,
+        ).setAction(R.string.dual_screen_recovery_action) {
+            val recreateWorkspace = dualScreenSpanCoordinator?.resumeAfterDisplayReconnect() == true
+            if (recreateWorkspace) recreate()
+        }.also(Snackbar::show)
     }
 
     private fun initializeDualScreenModeEntry(
@@ -349,20 +388,32 @@ open class MessageHomeActivity :
         // Register lifecycle observer
         lifecycle.addObserver(foldableStateObserver)
 
-        // Observe foldable state changes only when using WHEN_UNFOLDED mode
         lifecycleScope.launch {
-            foldableStateObserver.foldableState
-                .collect { foldableState ->
-                    if (generalSettingsManager.getConfig().display.coreSettings.splitViewMode ==
-                        SplitViewMode.WHEN_UNFOLDED
-                    ) {
-                        handleFoldableStateChange(foldableState)
+            lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                foldableStateObserver.foldableState
+                    .collect { foldableState ->
+                        if (generalSettingsManager.getConfig().display.coreSettings.splitViewMode ==
+                            SplitViewMode.WHEN_UNFOLDED
+                        ) {
+                            handleFoldableStateChange(foldableState)
+                        }
                     }
-                }
+            }
         }
     }
 
     private fun handleFoldableStateChange(foldableState: FoldableState) {
+        if (
+            !shouldHandleFoldableStateChange(
+                preparedState = initialDualScreenRuntimeState,
+                currentState = currentDualScreenRuntimeState,
+                recoveryPending = dualScreenRecoveryViewModel.recoveryPending,
+            )
+        ) {
+            logger.debug(TAG) { "Ignoring foldable state change while dual-screen lifecycle is active" }
+            return
+        }
+
         logger.debug(TAG) { "Handling foldable state change: $foldableState" }
 
         val shouldUseSplitView = foldableState == FoldableState.UNFOLDED
@@ -795,6 +846,8 @@ open class MessageHomeActivity :
     }
 
     override fun onDestroy() {
+        dualScreenRecoverySnackbar?.dismiss()
+        dualScreenRecoverySnackbar = null
         smartAssistantPanelCoordinator?.destroy()
         smartAssistantPanelCoordinator = null
         dualScreenSpanCoordinator?.destroy()

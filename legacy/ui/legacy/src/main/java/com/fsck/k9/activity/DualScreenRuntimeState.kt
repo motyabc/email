@@ -35,10 +35,16 @@ internal enum class DualScreenRuntimeState {
     }
 }
 
-internal fun DualScreenRuntimeState.requiresWorkspaceRecreation(nextState: DualScreenRuntimeState): Boolean {
-    return this == DualScreenRuntimeState.SMART && nextState == DualScreenRuntimeState.SINGLE_SCREEN
-}
-
 internal fun DualScreenRuntimeState.canActivatePreparedWorkspace(targetState: DualScreenRuntimeState): Boolean {
     return targetState == DualScreenRuntimeState.SINGLE_SCREEN || this == targetState
+}
+
+internal fun shouldHandleFoldableStateChange(
+    preparedState: DualScreenRuntimeState,
+    currentState: DualScreenRuntimeState,
+    recoveryPending: Boolean,
+): Boolean {
+    return !preparedState.usesProjectedCanvas &&
+        !currentState.usesProjectedCanvas &&
+        !recoveryPending
 }

@@ -59,19 +59,6 @@ class DualScreenRuntimeStateTest {
     }
 
     @Test
-    fun `only losing an active smart workspace requires activity recreation`() {
-        assertThat(
-            DualScreenRuntimeState.SMART.requiresWorkspaceRecreation(DualScreenRuntimeState.SINGLE_SCREEN),
-        ).isTrue()
-        assertThat(
-            DualScreenRuntimeState.IMMERSIVE.requiresWorkspaceRecreation(DualScreenRuntimeState.SINGLE_SCREEN),
-        ).isFalse()
-        assertThat(
-            DualScreenRuntimeState.SMART.requiresWorkspaceRecreation(DualScreenRuntimeState.SMART),
-        ).isFalse()
-    }
-
-    @Test
     fun `workspace only activates when activity prepared the matching layout`() {
         assertThat(
             DualScreenRuntimeState.SMART.canActivatePreparedWorkspace(DualScreenRuntimeState.SMART),
@@ -84,6 +71,38 @@ class DualScreenRuntimeStateTest {
         ).isFalse()
         assertThat(
             DualScreenRuntimeState.SMART.canActivatePreparedWorkspace(DualScreenRuntimeState.SINGLE_SCREEN),
+        ).isTrue()
+    }
+
+    @Test
+    fun `foldable observer is isolated while projection or recovery owns the layout`() {
+        assertThat(
+            shouldHandleFoldableStateChange(
+                preparedState = DualScreenRuntimeState.IMMERSIVE,
+                currentState = DualScreenRuntimeState.SINGLE_SCREEN,
+                recoveryPending = false,
+            ),
+        ).isFalse()
+        assertThat(
+            shouldHandleFoldableStateChange(
+                preparedState = DualScreenRuntimeState.SINGLE_SCREEN,
+                currentState = DualScreenRuntimeState.SMART,
+                recoveryPending = false,
+            ),
+        ).isFalse()
+        assertThat(
+            shouldHandleFoldableStateChange(
+                preparedState = DualScreenRuntimeState.SINGLE_SCREEN,
+                currentState = DualScreenRuntimeState.SINGLE_SCREEN,
+                recoveryPending = true,
+            ),
+        ).isFalse()
+        assertThat(
+            shouldHandleFoldableStateChange(
+                preparedState = DualScreenRuntimeState.SINGLE_SCREEN,
+                currentState = DualScreenRuntimeState.SINGLE_SCREEN,
+                recoveryPending = false,
+            ),
         ).isTrue()
     }
 }

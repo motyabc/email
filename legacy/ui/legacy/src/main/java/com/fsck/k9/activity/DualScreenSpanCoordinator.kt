@@ -42,7 +42,10 @@ internal class DualScreenSpanCoordinator(
         displayManager = activity.getSystemService(DisplayManager::class.java),
         geometry = geometry,
     ),
+    initialRecoveryPending: Boolean = false,
     private val onRuntimeStateChanged: (DualScreenRuntimeState) -> Unit = {},
+    private val onRecoveryPendingChanged: (Boolean) -> Unit = {},
+    private val onRecoveryAvailabilityChanged: (Boolean) -> Unit = {},
     private val onSmartWorkspaceLost: () -> Unit = {},
 ) : DisplayManager.DisplayListener {
     private val displayManager = activity.getSystemService(DisplayManager::class.java)
@@ -50,6 +53,11 @@ internal class DualScreenSpanCoordinator(
     private val originalLayoutWidth = sourceView.layoutParams.width
     private val originalLayoutHeight = sourceView.layoutParams.height
     private val originalTranslationY = sourceView.translationY
+    private val originalSystemBarsBehavior = WindowCompat.getInsetsController(
+        activity.window,
+        activity.window.decorView,
+    ).systemBarsBehavior
+    private val projectionLifecycle = DualScreenProjectionLifecycle(initialRecoveryPending)
 
     private var started = false
     private var orientationLocked = false
@@ -61,7 +69,7 @@ internal class DualScreenSpanCoordinator(
 
         started = true
         displayManager.registerDisplayListener(this, null)
-        reconcileDisplays()
+        reconcileOnStart()
     }
 
     fun stop() {
@@ -69,8 +77,12 @@ internal class DualScreenSpanCoordinator(
 
         started = false
         displayManager.unregisterDisplayListener(this)
-        deactivateSpanning()
-        updateRuntimeState(DualScreenRuntimeState.SINGLE_SCREEN)
+        applyProjectionDecision(
+            decision = projectionLifecycle.onStop(),
+            secondaryDisplay = null,
+            targetState = DualScreenRuntimeState.SINGLE_SCREEN,
+            allowSmartWorkspaceRecreation = false,
+        )
     }
 
     fun destroy() {
@@ -79,40 +91,98 @@ internal class DualScreenSpanCoordinator(
         restoreOrientation()
     }
 
-    override fun onDisplayAdded(displayId: Int) = reconcileDisplays()
+    fun resumeAfterDisplayReconnect(): Boolean {
+        if (!started) return false
 
-    override fun onDisplayRemoved(displayId: Int) = reconcileDisplays()
+        val secondaryDisplay = findSecondaryDisplay()
+        val targetState = resolveTargetState(secondaryDisplay)
+        val decision = projectionLifecycle.onRecoveryAccepted(
+            isSecondaryDisplayAvailable = secondaryDisplay != null,
+            isWorkspacePrepared = preparedRuntimeState.canActivatePreparedWorkspace(targetState),
+        )
+        applyProjectionDecision(
+            decision = decision,
+            secondaryDisplay = secondaryDisplay,
+            targetState = targetState,
+            allowSmartWorkspaceRecreation = false,
+        )
 
-    override fun onDisplayChanged(displayId: Int) = reconcileDisplays()
+        return decision.action == DualScreenProjectionAction.RECREATE_WORKSPACE
+    }
 
-    @Suppress("ReturnCount")
-    private fun reconcileDisplays() {
+    override fun onDisplayAdded(displayId: Int) = reconcileDisplayTopology()
+
+    override fun onDisplayRemoved(displayId: Int) = reconcileDisplayTopology()
+
+    override fun onDisplayChanged(displayId: Int) = reconcileDisplayTopology()
+
+    private fun reconcileOnStart() {
+        val secondaryDisplay = findSecondaryDisplay()
+        val targetState = resolveTargetState(secondaryDisplay)
+        val decision = projectionLifecycle.onStart(
+            isSecondaryDisplayAvailable = secondaryDisplay != null,
+            isWorkspacePrepared = preparedRuntimeState.canActivatePreparedWorkspace(targetState),
+            wasProjectionExpected = preparedRuntimeState.usesProjectedCanvas,
+        )
+
+        applyProjectionDecision(decision, secondaryDisplay, targetState)
+    }
+
+    private fun reconcileDisplayTopology() {
         if (!started) return
 
-        val secondaryDisplay = displaySelector.findEligibleSecondaryDisplay(activity.getDisplayIdCompat())
+        val secondaryDisplay = findSecondaryDisplay()
         val targetState = resolveTargetState(secondaryDisplay)
+        val currentPresentation = secondaryPresentation
+        val isCurrentProjectionReusable = currentPresentation?.let { presentation ->
+            presentation.display.displayId == secondaryDisplay?.displayId && presentation.isShowing
+        } == true
+        val decision = projectionLifecycle.onDisplayTopologyChanged(
+            isSecondaryDisplayAvailable = secondaryDisplay != null,
+            isCurrentProjectionReusable = isCurrentProjectionReusable,
+        )
 
-        if (!targetState.usesProjectedCanvas) {
-            val shouldRecreateWorkspace = runtimeState.requiresWorkspaceRecreation(targetState)
-            deactivateSpanning()
-            updateRuntimeState(targetState)
-            if (shouldRecreateWorkspace) onSmartWorkspaceLost()
-            return
+        applyProjectionDecision(decision, secondaryDisplay, targetState)
+    }
+
+    private fun applyProjectionDecision(
+        decision: DualScreenProjectionDecision,
+        secondaryDisplay: Display?,
+        targetState: DualScreenRuntimeState,
+        allowSmartWorkspaceRecreation: Boolean = true,
+    ) {
+        onRecoveryPendingChanged(decision.recoveryPending)
+        onRecoveryAvailabilityChanged(started && decision.recoveryAvailable)
+
+        when (decision.action) {
+            DualScreenProjectionAction.NONE -> secondaryPresentation?.requestFrame()
+            DualScreenProjectionAction.ACTIVATE -> {
+                checkNotNull(secondaryDisplay)
+                activateProjection(secondaryDisplay, targetState)
+            }
+
+            DualScreenProjectionAction.DEACTIVATE,
+            DualScreenProjectionAction.RECREATE_WORKSPACE,
+            -> {
+                val shouldRecreateWorkspace = allowSmartWorkspaceRecreation &&
+                    decision.recoveryStarted &&
+                    (runtimeState.usesSmartWorkspace || preparedRuntimeState.usesSmartWorkspace)
+                deactivateSpanning()
+                updateRuntimeState(DualScreenRuntimeState.SINGLE_SCREEN)
+                if (started && shouldRecreateWorkspace) onSmartWorkspaceLost()
+            }
         }
+    }
 
-        activateProjection(checkNotNull(secondaryDisplay), targetState)
+    private fun findSecondaryDisplay(): Display? {
+        return displaySelector.findEligibleSecondaryDisplay(activity.getDisplayIdCompat())
     }
 
     private fun resolveTargetState(secondaryDisplay: Display?): DualScreenRuntimeState {
-        val resolvedState = DualScreenRuntimeState.resolve(
+        return DualScreenRuntimeState.resolve(
             savedMode = dualScreenMode,
             isEligibleSecondaryDisplayAvailable = secondaryDisplay != null,
         )
-        return if (preparedRuntimeState.canActivatePreparedWorkspace(resolvedState)) {
-            resolvedState
-        } else {
-            DualScreenRuntimeState.SINGLE_SCREEN
-        }
     }
 
     private fun activateProjection(secondaryDisplay: Display, targetState: DualScreenRuntimeState) {
@@ -134,15 +204,8 @@ internal class DualScreenSpanCoordinator(
         )
         candidate.setOnDismissListener {
             if (secondaryPresentation === candidate) {
-                val shouldRecreateWorkspace = runtimeState.requiresWorkspaceRecreation(
-                    DualScreenRuntimeState.SINGLE_SCREEN,
-                )
                 secondaryPresentation = null
-                restoreSourceLayout()
-                restoreOrientation()
-                showSystemBars(activity.window)
-                updateRuntimeState(DualScreenRuntimeState.SINGLE_SCREEN)
-                if (started && shouldRecreateWorkspace) onSmartWorkspaceLost()
+                handleUnexpectedPresentationDismissal()
             }
         }
 
@@ -154,17 +217,31 @@ internal class DualScreenSpanCoordinator(
             candidate.requestFrame()
             updateRuntimeState(targetState)
         } catch (_: WindowManager.InvalidDisplayException) {
-            val shouldRecreateWorkspace = runtimeState.requiresWorkspaceRecreation(
-                DualScreenRuntimeState.SINGLE_SCREEN,
-            )
             candidate.setOnDismissListener(null)
             candidate.dismiss()
-            restoreSourceLayout()
-            restoreOrientation()
-            showSystemBars(activity.window)
-            updateRuntimeState(DualScreenRuntimeState.SINGLE_SCREEN)
-            if (started && shouldRecreateWorkspace) onSmartWorkspaceLost()
+            handleProjectionFailure()
         }
+    }
+
+    private fun handleUnexpectedPresentationDismissal() {
+        val secondaryDisplay = findSecondaryDisplay()
+        val decision = projectionLifecycle.onPresentationDismissed(
+            isSecondaryDisplayAvailable = secondaryDisplay != null,
+        )
+        applyProjectionDecision(
+            decision = decision,
+            secondaryDisplay = secondaryDisplay,
+            targetState = resolveTargetState(secondaryDisplay),
+        )
+    }
+
+    private fun handleProjectionFailure() {
+        val decision = projectionLifecycle.onPresentationDismissed(isSecondaryDisplayAvailable = false)
+        applyProjectionDecision(
+            decision = decision,
+            secondaryDisplay = null,
+            targetState = DualScreenRuntimeState.SINGLE_SCREEN,
+        )
     }
 
     private fun applySpanningLayout() {
@@ -229,7 +306,10 @@ internal class DualScreenSpanCoordinator(
     }
 
     private fun showSystemBars(window: Window) {
-        WindowCompat.getInsetsController(window, window.decorView).show(systemBars())
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            systemBarsBehavior = originalSystemBarsBehavior
+            show(systemBars())
+        }
     }
 
     private class SpanPresentation(
